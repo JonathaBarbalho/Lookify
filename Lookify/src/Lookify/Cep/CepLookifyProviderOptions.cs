@@ -1,8 +1,16 @@
-﻿namespace Lookify.Cep;
+﻿using Lookify.Providers;
 
-public sealed class CepLookifyProviderOptions {
+namespace Lookify.Cep;
 
-    public bool Enabled { get; set; } = true;
+public sealed class CepLookifyProviderOptions(
+        string baseAddress) : IProviderOptions {
 
-    public string BaseAddress { get; init; } = string.Empty;
+    public bool IsEnabled { get; set; } = true;
+
+    public string BaseAddress { get; init; } = baseAddress;
+
+    public void UpdateEnabled(bool isEnabled)
+    {
+        IsEnabled = isEnabled;
+    }
 }

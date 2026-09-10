@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Lookify.Providers;
 using Lookify.Providers.PlacaFipe;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,8 @@ internal sealed class VehiclePlateLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IVehiclePlateLookifyService {
+
+    private static readonly PlacaFipeProvider _placaFipe = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -32,15 +35,16 @@ internal sealed class VehiclePlateLookifyService(
 
         foreach (var provider in enabledProviders) {
             try {
-                return provider switch {
-                    VehiclePlateLookifyProviderEnum.PlacaFipe =>
-                        await PlacaFipeProviderRequest.RequestAsync(
-                            sanitizedPlate,
-                            _options.PlacaFipe.Token,
-                            _httpFactory,
-                            cancellationToken),
-                    _ => throw new NotSupportedException($"Provider {provider} not supported")
-                };
+                var providerOptions = _options.GetProviderOptions(provider);
+                var service = GetProvider(provider).Services
+                    .OfType<IVehiclePlateProviderService>()
+                    .First();
+
+                return await service.RequestAsync(
+                    sanitizedPlate,
+                    providerOptions.Token,
+                    _httpFactory,
+                    cancellationToken);
             }
             catch (Exception exception) {
                 failures.Add(exception);
@@ -71,6 +75,12 @@ internal sealed class VehiclePlateLookifyService(
 
     private List<VehiclePlateLookifyProviderEnum> GetEnabledProviders() =>
         _options.VehiclePlateProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(VehiclePlateLookifyProviderEnum provider) =>
+        provider switch {
+            VehiclePlateLookifyProviderEnum.PlacaFipe => _placaFipe,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
 }

@@ -1,3 +1,4 @@
+using Lookify.Providers;
 using Lookify.Providers.BrasilApi;
 using Lookify.Providers.NagerDate;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,9 @@ internal sealed class HolidayLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IHolidayLookifyService {
+
+    private static readonly BrasilApiProvider _brasilApi = new();
+    private static readonly NagerDateProvider _nagerDate = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -23,19 +27,14 @@ internal sealed class HolidayLookifyService(
 
         foreach (var provider in enabledProviders) {
             try {
-                return provider switch {
-                    HolidayLookifyProviderEnum.BrasilApi =>
-                        await BrasilApiHolidayProviderRequest.RequestAsync(
-                            year,
-                            _httpFactory,
-                            cancellationToken),
-                    HolidayLookifyProviderEnum.NagerDate =>
-                        await NagerDateHolidayProviderRequest.RequestAsync(
-                            year,
-                            _httpFactory,
-                            cancellationToken),
-                    _ => throw new NotSupportedException($"Provider {provider} not supported")
-                };
+                var service = GetProvider(provider).Services
+                    .OfType<IHolidayProviderService>()
+                    .First();
+
+                return await service.GetHolidaysAsync(
+                    year,
+                    _httpFactory,
+                    cancellationToken);
             }
             catch (Exception exception) {
                 failures.Add(exception);
@@ -54,6 +53,13 @@ internal sealed class HolidayLookifyService(
 
     private List<HolidayLookifyProviderEnum> GetEnabledProviders() =>
         _options.HolidayProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(HolidayLookifyProviderEnum provider) =>
+        provider switch {
+            HolidayLookifyProviderEnum.BrasilApi => _brasilApi,
+            HolidayLookifyProviderEnum.NagerDate => _nagerDate,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
 }

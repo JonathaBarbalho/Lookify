@@ -1,3 +1,4 @@
+using Lookify.Providers;
 using Lookify.Providers.BrasilApi;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -9,6 +10,8 @@ internal sealed class BankLookifyService(
     IOptions<LookifyOptions> options,
     ILogger logger) : IBankLookifyService {
 
+    private static readonly BrasilApiProvider _brasilApi = new();
+
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
     private readonly ILogger _logger = logger;
@@ -18,13 +21,9 @@ internal sealed class BankLookifyService(
     {
         return await ExecuteAsync(
             "bancos",
-            provider => provider switch {
-                BankLookifyProviderEnum.BrasilApi =>
-                    BrasilApiBankProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetAllBanksAsync(
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<BankLookifyResultDto> GetBankByCodeAsync(
@@ -33,14 +32,10 @@ internal sealed class BankLookifyService(
     {
         return await ExecuteAsync(
             $"banco de código {code}",
-            provider => provider switch {
-                BankLookifyProviderEnum.BrasilApi =>
-                    BrasilApiBankProviderRequest.RequestByCodeAsync(
-                        code,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetBankByCodeAsync(
+                code,
+                _httpFactory,
+                cancellationToken));
     }
 
     private async Task<TResult> ExecuteAsync<TResult>(
@@ -71,6 +66,17 @@ internal sealed class BankLookifyService(
 
     private List<BankLookifyProviderEnum> GetEnabledProviders() =>
         _options.BankProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(BankLookifyProviderEnum provider) =>
+        provider switch {
+            BankLookifyProviderEnum.BrasilApi => _brasilApi,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+
+    private static IBankProviderService GetService(BankLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IBankProviderService>()
+            .First();
 }

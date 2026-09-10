@@ -1,6 +1,16 @@
+using Lookify.Providers;
+
 namespace Lookify.Weather;
 
-public sealed class WeatherLookifyProviderOptions {
-    public bool Enabled { get; set; } = true;
-    public string BaseAddress { get; init; } = string.Empty;
+public sealed class WeatherLookifyProviderOptions(
+        string baseAddress) : IProviderOptions {
+
+    public bool IsEnabled { get; set; } = true;
+
+    public string BaseAddress { get; init; } = baseAddress;
+
+    public void UpdateEnabled(bool isEnabled)
+    {
+        IsEnabled = isEnabled;
+    }
 }

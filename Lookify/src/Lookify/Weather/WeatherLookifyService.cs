@@ -1,3 +1,4 @@
+using Lookify.Providers;
 using Lookify.Providers.Cptec;
 using Lookify.Providers.OpenMeteo;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,9 @@ internal sealed class WeatherLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IWeatherLookifyService {
+
+    private static readonly OpenMeteoProvider _openMeteo = new();
+    private static readonly CptecProvider _cptec = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -22,19 +26,12 @@ internal sealed class WeatherLookifyService(
     {
         return await ExecuteAsync(
             $"previsão do tempo para {latitude},{longitude}",
-            provider => provider switch {
-                WeatherLookifyProviderEnum.OpenMeteo =>
-                    OpenMeteoWeatherProviderRequest.RequestByCoordinatesAsync(
-                        latitude,
-                        longitude,
-                        days,
-                        _httpFactory,
-                        cancellationToken),
-                WeatherLookifyProviderEnum.Cptec =>
-                    throw new NotSupportedException(
-                        $"Provider {WeatherLookifyProviderEnum.Cptec} não oferece consulta por coordenadas."),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetForecastByCoordinatesAsync(
+                latitude,
+                longitude,
+                days,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<WeatherForecastLookifyResultDto>> GetForecastByCityNameAsync(
@@ -54,23 +51,12 @@ internal sealed class WeatherLookifyService(
 
         return await ExecuteAsync(
             operationDescription,
-            provider => provider switch {
-                WeatherLookifyProviderEnum.OpenMeteo =>
-                    OpenMeteoWeatherProviderRequest.RequestByCityNameAsync(
-                        cityName,
-                        normalizedState,
-                        days,
-                        _httpFactory,
-                        cancellationToken),
-                WeatherLookifyProviderEnum.Cptec =>
-                    CptecWeatherProviderRequest.RequestByCityNameAsync(
-                        cityName,
-                        normalizedState,
-                        days,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetForecastByCityNameAsync(
+                cityName,
+                normalizedState,
+                days,
+                _httpFactory,
+                cancellationToken));
     }
 
     private async Task<TResult> ExecuteAsync<TResult>(
@@ -101,6 +87,18 @@ internal sealed class WeatherLookifyService(
 
     private List<WeatherLookifyProviderEnum> GetEnabledProviders() =>
         _options.WeatherProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(WeatherLookifyProviderEnum provider) =>
+        provider switch {
+            WeatherLookifyProviderEnum.OpenMeteo => _openMeteo,
+            WeatherLookifyProviderEnum.Cptec => _cptec,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+
+    private static IWeatherProviderService GetService(WeatherLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IWeatherProviderService>()
+            .First();
 }

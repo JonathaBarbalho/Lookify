@@ -313,8 +313,8 @@ Provedores disponíveis (`VehiclePlateLookifyProviderEnum`): `PlacaFipe`.
 
 > A consulta de placa é um serviço **pago**, fornecido pela plataforma
 > [PlacaFipe](https://api.placafipe.com.br/) — é preciso contratar um plano lá para obter o token.
-> O token é configurado em `LookifyOptions.PlacaFipe.Token`, por padrão lido da variável de
-> ambiente `LOOKIFY_PLACAFIPE_TOKEN`. Nunca commite o token no código ou em `appsettings.json`
+> O token é configurado via `LookifyOptions.SetPlacaFipeToken(string)`, por padrão lido da variável
+> de ambiente `LOOKIFY_PLACAFIPE_TOKEN`. Nunca commite o token no código ou em `appsettings.json`
 > (só em `appsettings.Development.json`, fora do controle de versão — ver "Configurando via
 > appsettings.json").
 >
@@ -542,7 +542,7 @@ Provedores disponíveis (`HolidayLookifyProviderEnum`): `BrasilApi`, `NagerDate`
 > mistura um feriado estadual no seu conjunto "BR" (ex.: "Revolução Constitucionalista de 1932",
 > que é feriado só em São Paulo) — o `BrasilApi` não tem esse problema. Se precisão estrita a
 > feriados nacionais importa mais que ter um segundo provedor de fallback, desabilite o
-> `NagerDate` (`options.HolidayNagerDate.Enabled = false`).
+> `NagerDate` (`options.UpdateEnableHolidayProvider(false, HolidayLookifyProviderEnum.NagerDate)`).
 
 Campos de `HolidayLookifyResultDto` (nem todo provedor preenche todos os campos):
 
@@ -635,51 +635,68 @@ public sealed class LookifyOptions {
   - Bancos: `[BrasilApi]`
   - Feriados: `[BrasilApi, NagerDate]`
   - Previsão do tempo: `[OpenMeteo, Cptec]`
-- Uma propriedade `CepLookifyProviderOptions`/`CnpjLookifyProviderOptions`/
-  `VehiclePlateLookifyProviderOptions`/`FipeLookifyProviderOptions`/`IbgeLookifyProviderOptions`/
-  `BankLookifyProviderOptions`/`HolidayLookifyProviderOptions`/`WeatherLookifyProviderOptions` por
-  provedor (`ViaCep`, `BrasilApi`, `CepOpenCep`, `CepAwesomeApi` para CEP; `CnpjBrasilApi`,
-  `CnpjReceitaWs`, `CnpjPublica`, `CnpjMinhaReceita` para CNPJ; `PlacaFipe` para placa;
-  `FipeBrasilApi`, `FipeParallelum` para FIPE; `Ibge`, `IbgeBrasilApi` para localidades;
-  `BankBrasilApi` para bancos; `HolidayBrasilApi`, `HolidayNagerDate` para feriados;
-  `WeatherOpenMeteo`, `WeatherCptec` para previsão do tempo), cada uma com `Enabled` (bool) e
-  `BaseAddress` (string) — um provedor desabilitado é pulado mesmo que apareça em
-  `CepProviders`/`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/
-  `BankProviders`/`HolidayProviders`/`WeatherProviders`. `PlacaFipe` tem ainda `Token` (string),
-  lido por padrão da variável de ambiente `LOOKIFY_PLACAFIPE_TOKEN`.
+- A configuração por provedor (endereço base, habilitado) fica **encapsulada** dentro de
+  `LookifyOptions` — não é mais exposta como propriedade pública. Cada domínio expõe um par de
+  métodos para habilitar/desabilitar e reordenar seus provedores:
+  - `UpdateEnableCepProvider(bool, params CepLookifyProviderEnum[])` /
+    `OrderCepProviders(params CepLookifyProviderEnum[])`
+  - `UpdateEnableCnpjProvider(...)` / `OrderCnpjProviders(...)`
+  - `UpdateEnableVehiclePlateProvider(...)` / `OrderVehiclePlateProviders(...)` — mais
+    `SetPlacaFipeToken(string)` para o token do `PlacaFipe`, por padrão lido da variável de
+    ambiente `LOOKIFY_PLACAFIPE_TOKEN`.
+  - `UpdateEnableFipeProvider(...)` / `OrderFipeProviders(...)`
+  - `UpdateEnableIbgeProvider(...)` / `OrderIbgeProviders(...)`
+  - `UpdateEnableBankProvider(...)` / `OrderBankProviders(...)`
+  - `UpdateEnableHolidayProvider(...)` / `OrderHolidayProviders(...)`
+  - `UpdateEnableWeatherProvider(...)` / `OrderWeatherProviders(...)`
+
+  `Order*Providers` reordena os provedores informados e mantém os demais, na ordem original, ao
+  final da lista. Um provedor desabilitado é pulado no fallback mesmo que ainda apareça na ordem.
 
 ### Configurando via código
 
 ```csharp
 services.Configure<LookifyOptions>(options => {
-    options.CnpjPublica.Enabled = false;
-    options.CnpjProviders = [
+    options.UpdateEnableCnpjProvider(false, CnpjLookifyProviderEnum.Publica);
+    options.OrderCnpjProviders(
         CnpjLookifyProviderEnum.ReceitaWs,
-        CnpjLookifyProviderEnum.BrasilApi
-    ];
+        CnpjLookifyProviderEnum.BrasilApi);
 });
 ```
 
 ### Configurando via `appsettings.json`
 
+Habilitar/desabilitar e reordenar provedores agora é feito em código (métodos acima) — o
+`appsettings.json` continua servindo para as opções gerais:
+
 ```json
 {
   "Lookify": {
-    "UserAgent": "MinhaApp/1.0",
-    "CnpjProviders": ["ReceitaWs", "BrasilApi"],
-    "CnpjPublica": { "Enabled": false }
+    "UserAgent": "MinhaApp/1.0"
   }
 }
 ```
 
 ```csharp
 services.Configure<LookifyOptions>(configuration.GetSection("Lookify"));
+services.PostConfigure<LookifyOptions>(options => {
+    options.UpdateEnableCnpjProvider(false, CnpjLookifyProviderEnum.Publica);
+});
 ```
 
-Para segredos como o `Token` do `PlacaFipe`, use o padrão de camadas do `appsettings`: mantenha
-`appsettings.json` versionado com o campo vazio (documenta a chave) e coloque o valor real em
-`appsettings.Development.json` (ou outro `appsettings.{Environment}.json`), **fora do controle de
-versão** — é assim que o `LookifyConsoleTester` deste repositório está configurado.
+Para segredos como o `Token` do `PlacaFipe`, use `SetPlacaFipeToken` num `PostConfigure` lendo de
+onde preferir — variável de ambiente (padrão, `LOOKIFY_PLACAFIPE_TOKEN`), `IConfiguration`, secret
+manager, etc.:
+
+```csharp
+services.PostConfigure<LookifyOptions>(options =>
+    options.SetPlacaFipeToken(configuration["PlacaFipe:Token"] ?? string.Empty));
+```
+
+Para segredos, mantenha o padrão de camadas do `appsettings`: mantenha `appsettings.json`
+versionado sem o valor real e coloque-o em `appsettings.Development.json` (ou outro
+`appsettings.{Environment}.json`), **fora do controle de versão** — é assim que o
+`LookifyConsoleTester` deste repositório está configurado.
 
 ## Comportamento de fallback
 

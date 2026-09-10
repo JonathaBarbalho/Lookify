@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Lookify.Providers;
 using Lookify.Providers.BrasilApi;
 using Lookify.Providers.Ibge;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,9 @@ internal sealed class IbgeLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IIbgeLookifyService {
+
+    private static readonly IbgeProvider _ibge = new();
+    private static readonly BrasilApiProvider _brasilApi = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -24,17 +28,9 @@ internal sealed class IbgeLookifyService(
     {
         return await ExecuteAsync(
             "estados do IBGE",
-            provider => provider switch {
-                IbgeLookifyProviderEnum.Ibge =>
-                    IbgeStateProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                IbgeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiIbgeStateProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetStatesAsync(
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<IbgeStateLookifyResultDto> GetStateAsync(
@@ -45,19 +41,10 @@ internal sealed class IbgeLookifyService(
 
         return await ExecuteAsync(
             $"estado {sanitizedUf} do IBGE",
-            provider => provider switch {
-                IbgeLookifyProviderEnum.Ibge =>
-                    IbgeStateProviderRequest.RequestByUfAsync(
-                        sanitizedUf,
-                        _httpFactory,
-                        cancellationToken),
-                IbgeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiIbgeStateProviderRequest.RequestByUfAsync(
-                        sanitizedUf,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetStateAsync(
+                sanitizedUf,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<IbgeCityLookifyResultDto>> GetCitiesByStateAsync(
@@ -68,19 +55,10 @@ internal sealed class IbgeLookifyService(
 
         return await ExecuteAsync(
             $"municípios do estado {sanitizedUf} do IBGE",
-            provider => provider switch {
-                IbgeLookifyProviderEnum.Ibge =>
-                    IbgeCityProviderRequest.RequestByStateAsync(
-                        sanitizedUf,
-                        _httpFactory,
-                        cancellationToken),
-                IbgeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiIbgeCityProviderRequest.RequestByStateAsync(
-                        sanitizedUf,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetCitiesByStateAsync(
+                sanitizedUf,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<IbgeCityLookifyResultDto>> GetAllCitiesAsync(
@@ -88,16 +66,9 @@ internal sealed class IbgeLookifyService(
     {
         return await ExecuteAsync(
             "todos os municípios do IBGE",
-            provider => provider switch {
-                IbgeLookifyProviderEnum.Ibge =>
-                    IbgeCityProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                IbgeLookifyProviderEnum.BrasilApi =>
-                    throw new NotSupportedException(
-                        $"Provider {IbgeLookifyProviderEnum.BrasilApi} não oferece listagem de todos os municípios de uma vez."),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetAllCitiesAsync(
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<IbgeRegionLookifyResultDto>> GetRegionsAsync(
@@ -105,17 +76,9 @@ internal sealed class IbgeLookifyService(
     {
         return await ExecuteAsync(
             "regiões do IBGE",
-            provider => provider switch {
-                IbgeLookifyProviderEnum.Ibge =>
-                    IbgeRegionProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                IbgeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiIbgeRegionProviderRequest.RequestAllAsync(
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetRegionsAsync(
+                _httpFactory,
+                cancellationToken));
     }
 
     private async Task<TResult> ExecuteAsync<TResult>(
@@ -162,6 +125,18 @@ internal sealed class IbgeLookifyService(
 
     private List<IbgeLookifyProviderEnum> GetEnabledProviders() =>
         _options.IbgeProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(IbgeLookifyProviderEnum provider) =>
+        provider switch {
+            IbgeLookifyProviderEnum.Ibge => _ibge,
+            IbgeLookifyProviderEnum.BrasilApi => _brasilApi,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+
+    private static IIbgeProviderService GetService(IbgeLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IIbgeProviderService>()
+            .First();
 }

@@ -1,3 +1,4 @@
+using Lookify.Providers;
 using Lookify.Providers.BrasilApi;
 using Lookify.Providers.MinhaReceita;
 using Lookify.Providers.Publica;
@@ -11,6 +12,11 @@ internal sealed class CnpjLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : ICnpjLookifyService {
+
+    private static readonly BrasilApiProvider _brasilApi = new();
+    private static readonly ReceitaWsProvider _receitaWs = new();
+    private static readonly PublicaProvider _publica = new();
+    private static readonly MinhaReceitaProvider _minhaReceita = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -30,29 +36,14 @@ internal sealed class CnpjLookifyService(
 
         foreach (var provider in enabledProviders) {
             try {
-                return provider switch {
-                    CnpjLookifyProviderEnum.BrasilApi =>
-                        await BrasilApiCnpjProviderRequest.RequestAsync(
-                            sanitizedCnpj,
-                            _httpFactory,
-                            cancellationToken),
-                    CnpjLookifyProviderEnum.ReceitaWs =>
-                        await ReceitaWsProviderRequest.RequestAsync(
-                            sanitizedCnpj,
-                            _httpFactory,
-                            cancellationToken),
-                    CnpjLookifyProviderEnum.Publica =>
-                        await PublicaProviderRequest.RequestAsync(
-                            sanitizedCnpj,
-                            _httpFactory,
-                            cancellationToken),
-                    CnpjLookifyProviderEnum.MinhaReceita =>
-                        await MinhaReceitaProviderRequest.RequestAsync(
-                            sanitizedCnpj,
-                            _httpFactory,
-                            cancellationToken),
-                    _ => throw new NotSupportedException($"Provider {provider} not supported")
-                };
+                var service = GetProvider(provider).Services
+                    .OfType<ICnpjProviderService>()
+                    .First();
+
+                return await service.RequestAsync(
+                    sanitizedCnpj,
+                    _httpFactory,
+                    cancellationToken);
             }
             catch (Exception exception) {
                 failures.Add(exception);
@@ -83,6 +74,15 @@ internal sealed class CnpjLookifyService(
 
     private List<CnpjLookifyProviderEnum> GetEnabledProviders() =>
         _options.CnpjProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(CnpjLookifyProviderEnum provider) =>
+        provider switch {
+            CnpjLookifyProviderEnum.BrasilApi => _brasilApi,
+            CnpjLookifyProviderEnum.ReceitaWs => _receitaWs,
+            CnpjLookifyProviderEnum.Publica => _publica,
+            CnpjLookifyProviderEnum.MinhaReceita => _minhaReceita,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
 }

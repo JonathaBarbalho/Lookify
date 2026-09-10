@@ -1,3 +1,4 @@
+using Lookify.Providers;
 using Lookify.Providers.BrasilApi;
 using Lookify.Providers.Parallelum;
 using Microsoft.Extensions.Logging;
@@ -10,6 +11,9 @@ internal sealed class FipeLookifyService(
     IOptions<LookifyOptions> options,
     ILogger logger) : IFipeLookifyService {
 
+    private static readonly BrasilApiProvider _brasilApi = new();
+    private static readonly ParallelumProvider _parallelum = new();
+
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
     private readonly ILogger _logger = logger;
@@ -19,17 +23,9 @@ internal sealed class FipeLookifyService(
     {
         return await ExecuteAsync(
             "tabelas de referência FIPE",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeReferenceTableProviderRequest.RequestAsync(
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    ParallelumFipeReferenceTableProviderRequest.RequestAsync(
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetReferenceTablesAsync(
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<FipeBrandLookifyResultDto>> GetBrandsAsync(
@@ -39,21 +35,11 @@ internal sealed class FipeLookifyService(
     {
         return await ExecuteAsync(
             $"marcas FIPE de {vehicleType}",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeBrandProviderRequest.RequestAsync(
-                        vehicleType,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    ParallelumFipeBrandProviderRequest.RequestAsync(
-                        vehicleType,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetBrandsAsync(
+                vehicleType,
+                referenceTable,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<FipeModelLookifyResultDto>> GetModelsAsync(
@@ -66,23 +52,12 @@ internal sealed class FipeLookifyService(
 
         return await ExecuteAsync(
             $"modelos FIPE da marca {brandCode}",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeModelProviderRequest.RequestAsync(
-                        vehicleType,
-                        brandCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    ParallelumFipeModelProviderRequest.RequestAsync(
-                        vehicleType,
-                        brandCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetModelsAsync(
+                vehicleType,
+                brandCode,
+                referenceTable,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<FipeModelYearLookifyResultDto>> GetModelYearsAsync(
@@ -97,25 +72,13 @@ internal sealed class FipeLookifyService(
 
         return await ExecuteAsync(
             $"anos FIPE do modelo {modelCode}",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeModelYearProviderRequest.RequestAsync(
-                        vehicleType,
-                        brandCode,
-                        modelCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    ParallelumFipeModelYearProviderRequest.RequestAsync(
-                        vehicleType,
-                        brandCode,
-                        modelCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetModelYearsAsync(
+                vehicleType,
+                brandCode,
+                modelCode,
+                referenceTable,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<FipeVehiclePriceLookifyResultDto> GetVehiclePriceAsync(
@@ -132,27 +95,14 @@ internal sealed class FipeLookifyService(
 
         return await ExecuteAsync(
             $"valor FIPE do veículo {brandCode}/{modelCode}/{yearCode}",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeVehiclePriceProviderRequest.RequestDetailsAsync(
-                        vehicleType,
-                        brandCode,
-                        modelCode,
-                        yearCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    ParallelumFipeVehiclePriceProviderRequest.RequestDetailsAsync(
-                        vehicleType,
-                        brandCode,
-                        modelCode,
-                        yearCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetVehiclePriceAsync(
+                vehicleType,
+                brandCode,
+                modelCode,
+                yearCode,
+                referenceTable,
+                _httpFactory,
+                cancellationToken));
     }
 
     public async Task<List<FipeVehiclePriceLookifyResultDto>> GetPriceByFipeCodeAsync(
@@ -164,18 +114,11 @@ internal sealed class FipeLookifyService(
 
         return await ExecuteAsync(
             $"valor FIPE do código {fipeCode}",
-            provider => provider switch {
-                FipeLookifyProviderEnum.BrasilApi =>
-                    BrasilApiFipeVehiclePriceProviderRequest.RequestByFipeCodeAsync(
-                        fipeCode,
-                        referenceTable,
-                        _httpFactory,
-                        cancellationToken),
-                FipeLookifyProviderEnum.Parallelum =>
-                    throw new NotSupportedException(
-                        $"Provider {FipeLookifyProviderEnum.Parallelum} não oferece busca por código FIPE direto."),
-                _ => throw new NotSupportedException($"Provider {provider} not supported")
-            });
+            provider => GetService(provider).GetPriceByFipeCodeAsync(
+                fipeCode,
+                referenceTable,
+                _httpFactory,
+                cancellationToken));
     }
 
     private async Task<TResult> ExecuteAsync<TResult>(
@@ -215,6 +158,18 @@ internal sealed class FipeLookifyService(
 
     private List<FipeLookifyProviderEnum> GetEnabledProviders() =>
         _options.FipeProviders
-            .Where(provider => _options.GetProviderOptions(provider).Enabled)
+            .Where(provider => _options.GetProviderOptions(provider).IsEnabled)
             .ToList();
+
+    private static IProvider GetProvider(FipeLookifyProviderEnum provider) =>
+        provider switch {
+            FipeLookifyProviderEnum.BrasilApi => _brasilApi,
+            FipeLookifyProviderEnum.Parallelum => _parallelum,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+
+    private static IFipeProviderService GetService(FipeLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IFipeProviderService>()
+            .First();
 }
