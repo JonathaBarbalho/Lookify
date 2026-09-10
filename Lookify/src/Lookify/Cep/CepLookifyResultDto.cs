@@ -1,6 +1,6 @@
-﻿namespace Lookify.Cep.Dto;
+﻿namespace Lookify.Cep;
 
-public sealed record class CepLookifyResult {
+public sealed record class CepLookifyResultDto {
 
     public string? ZipCode { get; init; }
 

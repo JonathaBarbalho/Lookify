@@ -1,9 +1,9 @@
-﻿using Lookify.Cep.Dto;
 using System.Text.Json.Serialization;
+using Lookify.Cep;
 
-namespace Lookify.Cep.Providers.BrasilApi;
+namespace Lookify.Providers.BrasilApi;
 
-internal sealed record class BrasilApiResponse {
+internal sealed record class BrasilApiCepProviderResponse {
 
     [property: JsonPropertyName("cep")]
     public string? Cep { get; init; }
@@ -20,8 +20,8 @@ internal sealed record class BrasilApiResponse {
     [property: JsonPropertyName("street")]
     public string? Street { get; init; }
 
-    public CepLookifyResult ToResult() =>
-        new CepLookifyResult {
+    public CepLookifyResultDto ToResult() =>
+        new CepLookifyResultDto {
             ZipCode = Cep,
             Street = Street,
             Complement = null,

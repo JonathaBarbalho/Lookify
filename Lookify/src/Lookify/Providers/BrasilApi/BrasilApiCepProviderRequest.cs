@@ -1,28 +1,26 @@
-﻿using Lookify.Cep.Dto;
-using Lookify.Cep.Options;
-using Lookify.Cep.Providers.ViaCep;
+using Lookify.Cep;
 
-namespace Lookify.Cep.Providers.BrasilApi;
+namespace Lookify.Providers.BrasilApi;
 
-internal class BrasilApiProviderRequest : IProviderRequest {
+internal sealed class BrasilApiCepProviderRequest : IProviderRequest<CepLookifyResultDto> {
 
     public static string ProviderName => "BrasilApi";
 
     public static string BaseAddress => "https://brasilapi.com.br/";
-    
-    public static async Task<CepLookifyResult> RequestAsync(
-        string zipCode,
+
+    public static async Task<CepLookifyResultDto> RequestAsync(
+        string identifier,
         IHttpClientFactory httpFactory,
         CancellationToken cancellationToken = default)
     {
-        var fullAddress = $"{BaseAddress}/api/cep/v2/{zipCode}";
+        var fullAddress = $"{BaseAddress}api/cep/v2/{identifier}";
         var client = httpFactory.CreateClient($"Lookify.{ProviderName}");
         var response = await client.GetAsync(
             fullAddress,
             cancellationToken);
-        var payload = await ProviderRequestDeserialization.ReadAndDeserializeAsync<BrasilApiResponse>(
+        var payload = await ProviderRequestDeserialization.ReadAndDeserializeAsync<BrasilApiCepProviderResponse>(
             providerName: ProviderName,
-            zipCode,
+            identifier,
             response,
             cancellationToken);
 

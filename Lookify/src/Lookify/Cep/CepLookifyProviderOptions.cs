@@ -1,4 +1,4 @@
-﻿namespace Lookify.Cep.Options;
+﻿namespace Lookify.Cep;
 
 public sealed class CepLookifyProviderOptions {
 

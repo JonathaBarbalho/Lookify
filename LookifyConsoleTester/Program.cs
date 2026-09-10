@@ -11,7 +11,7 @@ builder.Services.AddLogging(builder => {
 });
 builder.Services.AddHttpClient();
 builder.Services.Configure<LookifyOptions>(options => {
-
+    options.CnpjPublica.Enabled = false;
 });
 
 builder.Services.AddTransient<LookifyService>();
@@ -23,8 +23,3 @@ using var host = builder.Build();
 var tester = host.Services.GetRequiredService<Tester>();
 
 await tester.RunAsync();
-
-//var provider = builder.Services.BuildServiceProvider();
-
-//var lookifyService = provider.GetRequiredService<LookifyService>();
-//var d = lookifyService.Cep.ConsultAsync("56308210").Result;

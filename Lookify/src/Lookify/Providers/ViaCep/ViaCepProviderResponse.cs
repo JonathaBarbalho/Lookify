@@ -1,9 +1,9 @@
-﻿using Lookify.Cep.Dto;
 using System.Text.Json.Serialization;
+using Lookify.Cep;
 
-namespace Lookify.Cep.Providers.ViaCep;
+namespace Lookify.Providers.ViaCep;
 
-internal sealed record class ViaCepResponse {
+internal sealed record class ViaCepProviderResponse {
 
     [property: JsonPropertyName("cep")]
     public string? Cep { get; init; }
@@ -29,8 +29,8 @@ internal sealed record class ViaCepResponse {
     [property: JsonPropertyName("erro")]
     public bool Erro { get; init; }
 
-    public CepLookifyResult ToResult() =>
-        new CepLookifyResult {
+    public CepLookifyResultDto ToResult() =>
+        new CepLookifyResultDto {
             ZipCode = Cep,
             Street = Logradouro,
             Complement = Complemento,

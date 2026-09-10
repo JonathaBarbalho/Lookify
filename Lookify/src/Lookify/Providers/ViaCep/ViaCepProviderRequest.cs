@@ -1,32 +1,31 @@
-﻿using Lookify.Cep.Dto;
-using Lookify.Cep.Providers.BrasilApi;
+using Lookify.Cep;
 
-namespace Lookify.Cep.Providers.ViaCep;
+namespace Lookify.Providers.ViaCep;
 
-internal class ViaCepProviderRequest : IProviderRequest {
-    
+internal sealed class ViaCepProviderRequest : IProviderRequest<CepLookifyResultDto> {
+
     public static string ProviderName => "ViaCep";
 
     public static string BaseAddress => "https://viacep.com.br/";
 
-    public static async Task<CepLookifyResult> RequestAsync(
-        string zipCode,
+    public static async Task<CepLookifyResultDto> RequestAsync(
+        string identifier,
         IHttpClientFactory httpFactory,
         CancellationToken cancellationToken = default)
     {
-        var fullAddress = $"{BaseAddress}/ws/{zipCode}/json/";
+        var fullAddress = $"{BaseAddress}ws/{identifier}/json/";
         var client = httpFactory.CreateClient($"Lookify.{ProviderName}");
         var response = await client.GetAsync(
             fullAddress,
             cancellationToken);
-        var payload = await ProviderRequestDeserialization.ReadAndDeserializeAsync<ViaCepResponse>(
+        var payload = await ProviderRequestDeserialization.ReadAndDeserializeAsync<ViaCepProviderResponse>(
             providerName: ProviderName,
-            zipCode,
+            identifier,
             response,
             cancellationToken);
 
         if (payload.Erro)
-            throw new InvalidOperationException($"{ProviderName} não encontrou o CEP {zipCode}.");
+            throw new InvalidOperationException($"{ProviderName} não encontrou o CEP {identifier}.");
 
         return payload.ToResult();
     }

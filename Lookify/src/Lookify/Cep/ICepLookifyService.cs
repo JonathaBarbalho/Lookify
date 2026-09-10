@@ -1,10 +1,8 @@
-﻿using Lookify.Cep.Dto;
-
-namespace Lookify.Cep.Inteface;
+﻿namespace Lookify.Cep;
 
 public interface ICepLookifyService {
 
-    Task<CepLookifyResult> ConsultAsync(
+    Task<CepLookifyResultDto> ConsultAsync(
         string zipCode,
         CancellationToken cancellationToken = default);
 }

@@ -1,14 +1,12 @@
-﻿using Lookify.Cep.Dto;
+namespace Lookify.Providers;
 
-namespace Lookify.Cep.Providers;
-
-internal interface IProviderRequest {
+internal interface IProviderRequest<TResult> {
     public static abstract string ProviderName { get; }
-    
+
     public static abstract string BaseAddress { get; }
 
-    public static abstract Task<CepLookifyResult> RequestAsync(
-        string zipCode,
+    public static abstract Task<TResult> RequestAsync(
+        string identifier,
         IHttpClientFactory httpFactory,
         CancellationToken cancellationToken = default);
 }

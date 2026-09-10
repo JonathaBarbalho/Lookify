@@ -30,4 +30,31 @@ internal sealed class TestScenarios(
             Console.WriteLine($"Error: {ex.Message}");
         }
     }
+
+    public async Task TestCnpjLookup()
+    {
+        Console.WriteLine("Testing CNPJ Lookup...");
+
+        Console.Write("Enter a CNPJ: ");
+        var cnpj = Console.ReadLine();
+
+        try {
+            if (string.IsNullOrWhiteSpace(cnpj)) {
+                Console.WriteLine("Invalid CNPJ format.");
+                return;
+            }
+
+            var result = await _lookifyService.Cnpj.ConsultAsync(cnpj);
+
+            Console.WriteLine($"CNPJ: {result.Cnpj}");
+            Console.WriteLine($"Company Name: {result.CompanyName}");
+            Console.WriteLine($"Trade Name: {result.TradeName}");
+            Console.WriteLine($"Registration Status: {result.RegistrationStatusDescription}");
+            Console.WriteLine($"City: {result.City}");
+            Console.WriteLine($"State: {result.State}");
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
 }

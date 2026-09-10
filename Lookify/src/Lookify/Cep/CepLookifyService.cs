@@ -1,15 +1,11 @@
-﻿using Lookify.Cep.Dto;
-using Lookify.Cep.Inteface;
-using Lookify.Cep.Options;
-using Lookify.Cep.Providers.BrasilApi;
-using Lookify.Cep.Providers.ViaCep;
+﻿using Lookify.Providers.BrasilApi;
+using Lookify.Providers.ViaCep;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.VisualBasic;
 
-namespace Lookify.Cep.Service;
+namespace Lookify.Cep;
 
-public sealed class CepLookifyService(
+internal sealed class CepLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : ICepLookifyService {
@@ -18,7 +14,7 @@ public sealed class CepLookifyService(
     private readonly LookifyOptions _options = options.Value;
     private readonly ILogger _logger = logger;
 
-    public async Task<CepLookifyResult> ConsultAsync(
+    public async Task<CepLookifyResultDto> ConsultAsync(
         string zipCode,
         CancellationToken cancellationToken = default)
     {
@@ -39,7 +35,7 @@ public sealed class CepLookifyService(
                             _httpFactory,
                             cancellationToken),
                     CepLookifyProviderEnum.BrasilApi =>
-                        await BrasilApiProviderRequest.RequestAsync(
+                        await BrasilApiCepProviderRequest.RequestAsync(
                             sanitizedZipCode,
                             _httpFactory,
                             cancellationToken),
@@ -48,7 +44,7 @@ public sealed class CepLookifyService(
             }
             catch (Exception exception) {
                 failures.Add(exception);
-                _logger.LogWarning(
+                _logger.LogError(
                     exception,
                     "Falha ao consultar o CEP {ZipCode} no provedor {Provider}.",
                     sanitizedZipCode,
@@ -61,8 +57,18 @@ public sealed class CepLookifyService(
             new AggregateException(failures));
     }
 
-    private string SanitizeZipCode(string zipCode) =>
-        new string(zipCode.Where(char.IsDigit).ToArray());
+    private string SanitizeZipCode(string zipCode)
+    {
+        var satiziedZipCode = new string(zipCode.Where(char.IsDigit).ToArray());
+
+        if (satiziedZipCode.Length != 8)
+            throw new ArgumentException(
+                "Zip code must contain exactly 8 digits after sanitization.",
+                nameof(zipCode));
+
+        return satiziedZipCode;
+    }
+        
 
     private List<CepLookifyProviderEnum> GetEnabledProviders() =>
         _options.CepProviders

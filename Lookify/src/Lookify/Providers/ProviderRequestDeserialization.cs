@@ -1,13 +1,12 @@
-﻿using System.Reflection.Emit;
 using System.Text.Json;
 
-namespace Lookify.Cep.Providers;
+namespace Lookify.Providers;
 
 internal static class ProviderRequestDeserialization {
 
     public static async Task<TResponse> ReadAndDeserializeAsync<TResponse>(
         string providerName,
-        string zipCode,
+        string identifier,
         HttpResponseMessage response,
         CancellationToken cancellationToken = default)
     {
@@ -18,7 +17,7 @@ internal static class ProviderRequestDeserialization {
 
         if (!response.IsSuccessStatusCode) {
             throw new HttpRequestException(
-                $"{providerName} retornou {(int)response.StatusCode} ({response.ReasonPhrase}) para o CEP {zipCode}. Corpo: {TruncateForLog(content)}",
+                $"{providerName} retornou {(int)response.StatusCode} ({response.ReasonPhrase}) para {identifier}. Corpo: {TruncateForLog(content)}",
                 null,
                 response.StatusCode);
         }
@@ -26,11 +25,11 @@ internal static class ProviderRequestDeserialization {
         try {
             return JsonSerializer.Deserialize<TResponse>(content)
                 ?? throw new InvalidOperationException(
-                    $"Falha ao desserializar a resposta do CEP em {providerName}.");
+                    $"Falha ao desserializar a resposta de {identifier} em {providerName}.");
         }
         catch (JsonException exception) {
             throw new InvalidOperationException(
-                $"{providerName} não conseguiu desserializar o CEP {zipCode}. Corpo: {TruncateForLog(content)}",
+                $"{providerName} não conseguiu desserializar {identifier}. Corpo: {TruncateForLog(content)}",
                 exception);
         }
     }
