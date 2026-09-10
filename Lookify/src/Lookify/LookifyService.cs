@@ -2,8 +2,10 @@ using Lookify.Bank;
 using Lookify.Cep;
 using Lookify.Cnpj;
 using Lookify.Fipe;
+using Lookify.Holiday;
 using Lookify.Ibge;
 using Lookify.VehiclePlate;
+using Lookify.Weather;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -22,6 +24,10 @@ public sealed class LookifyService {
     public IIbgeLookifyService Ibge { get; }
 
     public IBankLookifyService Bank { get; }
+
+    public IHolidayLookifyService Holiday { get; }
+
+    public IWeatherLookifyService Weather { get; }
 
     public LookifyService(
         IHttpClientFactory httpFactory,
@@ -54,6 +60,16 @@ public sealed class LookifyService {
             logger);
 
         Bank = new BankLookifyService(
+            httpFactory,
+            options,
+            logger);
+
+        Holiday = new HolidayLookifyService(
+            httpFactory,
+            options,
+            logger);
+
+        Weather = new WeatherLookifyService(
             httpFactory,
             options,
             logger);

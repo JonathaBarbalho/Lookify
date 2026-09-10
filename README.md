@@ -1,7 +1,8 @@
 # Lookify
 
 Biblioteca .NET para consulta de **CEP**, **CNPJ**, **placa de veículo**, **tabela FIPE**,
-**localidades do IBGE** e **bancos**, com fallback automático entre múltiplos provedores.
+**localidades do IBGE**, **bancos**, **feriados** e **previsão do tempo**, com fallback automático
+entre múltiplos provedores.
 
 ## Recursos
 
@@ -15,6 +16,9 @@ Biblioteca .NET para consulta de **CEP**, **CNPJ**, **placa de veículo**, **tab
 - Consulta de estados, municípios e regiões do **IBGE**, com fallback entre a API oficial
   (`servicodados.ibge.gov.br`) e o espelho da **BrasilAPI**.
 - Consulta de bancos brasileiros (código, ISPB, nome, endereço da sede) via **BrasilAPI**.
+- Consulta de feriados nacionais por ano, com fallback entre **BrasilAPI** e **Nager.Date**.
+- Consulta de previsão do tempo por cidade ou coordenadas, com fallback entre **Open-Meteo** e
+  **CPTEC** (via BrasilAPI).
 - Fallback automático: se um provedor falhar, o próximo da lista é tentado, na ordem configurada.
 - Cada provedor pode ser habilitado/desabilitado e reordenado individualmente.
 - Integração nativa com o padrão de DI do .NET (`IHttpClientFactory`, `IOptions<T>`, `ILogger`).
@@ -45,6 +49,8 @@ public sealed class LookifyService {
     public IFipeLookifyService Fipe { get; }
     public IIbgeLookifyService Ibge { get; }
     public IBankLookifyService Bank { get; }
+    public IHolidayLookifyService Holiday { get; }
+    public IWeatherLookifyService Weather { get; }
 }
 ```
 
@@ -146,6 +152,30 @@ public sealed class MeuServico(LookifyService lookify) {
             // todos os provedores falharam
             return null;
         }
+    }
+}
+```
+
+### Consultar feriados
+
+```csharp
+public sealed class MeuServico(LookifyService lookify) {
+    public async Task<bool> EhFeriadoAsync(DateOnly data)
+    {
+        var feriados = await lookify.Holiday.GetHolidaysAsync(data.Year);
+        return feriados.Any(f => f.Date == data);
+    }
+}
+```
+
+### Consultar a previsão do tempo
+
+```csharp
+public sealed class MeuServico(LookifyService lookify) {
+    public async Task<decimal?> ObterTemperaturaMaximaHojeAsync(string cidade)
+    {
+        var previsao = await lookify.Weather.GetForecastByCityNameAsync(cidade);
+        return previsao.FirstOrDefault()?.MaxTemperature;
     }
 }
 ```
@@ -497,6 +527,91 @@ Campos de `BankLookifyResultDto`:
 | `ZipCode`      | `string?` | CEP da sede                         |
 | `LogoUrl`      | `string?` | URL do logo do banco                |
 
+## Consulta de Feriados
+
+```csharp
+Task<List<HolidayLookifyResultDto>> GetHolidaysAsync(int year, CancellationToken cancellationToken = default)
+```
+
+Só feriados **nacionais** — nenhum dos dois provedores oferece feriados estaduais/municipais de
+forma confiável. O `BrasilApi` suporta anos de 1900 a 2199 (fora disso, 404).
+
+Provedores disponíveis (`HolidayLookifyProviderEnum`): `BrasilApi`, `NagerDate`.
+
+> O `NagerDate` é uma API internacional (cobre vários países, não só o Brasil) e, na prática,
+> mistura um feriado estadual no seu conjunto "BR" (ex.: "Revolução Constitucionalista de 1932",
+> que é feriado só em São Paulo) — o `BrasilApi` não tem esse problema. Se precisão estrita a
+> feriados nacionais importa mais que ter um segundo provedor de fallback, desabilite o
+> `NagerDate` (`options.HolidayNagerDate.Enabled = false`).
+
+Campos de `HolidayLookifyResultDto` (nem todo provedor preenche todos os campos):
+
+| Campo       | Tipo       | Descrição                          |
+|-------------|------------|-------------------------------------|
+| `Date`      | `DateOnly?` | Data do feriado                    |
+| `Name`      | `string?`  | Nome em inglês (só `NagerDate`)     |
+| `LocalName` | `string?`  | Nome em português                  |
+| `Type`      | `string?`  | Classificação do feriado (varia por provedor) |
+| `Weekday`   | `string?`  | Dia da semana, por extenso (só `BrasilApi`) |
+
+## Consulta de Previsão do Tempo
+
+Como FIPE/IBGE/Bancos, é uma consulta de catálogo (uma lista de dias), não de identificador único:
+
+```csharp
+Task<List<WeatherForecastLookifyResultDto>> GetForecastByCoordinatesAsync(decimal latitude, decimal longitude, int? days = null, CancellationToken cancellationToken = default)
+
+Task<List<WeatherForecastLookifyResultDto>> GetForecastByCityNameAsync(string cityName, string? state = null, int? days = null, CancellationToken cancellationToken = default)
+```
+
+`cityName` é obrigatório (não pode ser `null`/vazio), senão uma `ArgumentException` é lançada antes
+de qualquer chamada de rede. `days` é opcional — quando omitido, cada provedor usa sua janela
+padrão (o `OpenMeteo` devolve 7 dias por padrão; o `Cptec` devolve 1).
+
+**Nomes de cidade se repetem no Brasil** (ex.: "Bom Jesus" existe em pelo menos 4 estados) — por
+isso `state` (UF, ex.: `"PI"`) é aceito para desambiguar. Sem `state`, cada provedor escolhe a
+melhor correspondência por conta própria (o `OpenMeteo` ordena por relevância/população; o `Cptec`
+pega a primeira da lista que a BrasilAPI devolver) — **não é garantido** que seja a cidade que você
+quer. Com `state`, o `OpenMeteo` pede até 20 candidatos e filtra pelo nome do estado (convertido de
+UF internamente); o `Cptec` filtra a lista de `cidade/{nome}` pela UF devolvida. Se nenhum
+candidato bater com a UF informada, uma `InvalidOperationException` é lançada para aquele provedor
+(e o fallback segue, se houver outro provedor configurado).
+
+Provedores disponíveis (`WeatherLookifyProviderEnum`): `OpenMeteo`, `Cptec`.
+
+> `GetForecastByCoordinatesAsync` só é suportado pelo provedor `OpenMeteo` — o `Cptec` só resolve
+> cidade por nome (internamente busca um `cityCode` na própria BrasilAPI) e não tem endpoint de
+> consulta por coordenadas. Se `Cptec` for o provedor corrente na hora de chamar
+> `GetForecastByCoordinatesAsync`, uma `NotSupportedException` é lançada para esse provedor
+> especificamente.
+>
+> O `Cptec` (via BrasilAPI) é **instável** e não deve ser tratado como confiável — é só um fallback.
+> Além dos sub-endpoints de clima por capital, por aeroporto e por semana/coordenadas (que
+> devolveram erro consistentemente e por isso nem foram implementados), a própria busca de cidade
+> por nome (`cidade/{nome}`, usada por `GetForecastByCityNameAsync`) falha com HTTP 500
+> (`CITY_INTERNAL`) para a maioria dos nomes testados — inclusive capitais sem nenhuma ambiguidade,
+> como Curitiba, Manaus, Belém e Aracaju. Só "São Paulo" respondeu de forma consistente nos testes.
+> Por isso o `OpenMeteo` é o provedor **padrão e recomendado**; o `Cptec` só entra em ação quando o
+> `OpenMeteo` falha, e mesmo assim pode não responder.
+>
+> O `ConditionCode` do `OpenMeteo` é um código numérico padrão **WMO**; `ConditionDescription` é
+> obtida traduzindo esse código para português com uma tabela estática embutida na biblioteca (não
+> vem do provedor). O `Cptec` já devolve a descrição pronta do provedor.
+
+Campos de `WeatherForecastLookifyResultDto` (nem todo provedor preenche todos os campos):
+
+| Campo                    | Tipo        | Descrição                          |
+|---------------------------|-------------|--------------------------------------|
+| `Date`                    | `DateOnly?` | Data do dia previsto                 |
+| `MinTemperature`          | `decimal?`  | Temperatura mínima (°C)              |
+| `MaxTemperature`          | `decimal?`  | Temperatura máxima (°C)              |
+| `ConditionCode`           | `string?`   | Código da condição (WMO no `OpenMeteo`, sigla no `Cptec`) |
+| `ConditionDescription`    | `string?`   | Descrição da condição, em português  |
+| `PrecipitationProbability`| `int?`      | Probabilidade de chuva, % (só `OpenMeteo`) |
+| `UvIndex`                 | `decimal?`  | Índice UV                            |
+| `City`                    | `string?`   | Cidade (sempre no `Cptec`; no `OpenMeteo` só via `GetForecastByCityNameAsync`) |
+| `State`                   | `string?`   | UF (só `Cptec`)                      |
+
 ## Configuração (`LookifyOptions`)
 
 ```csharp
@@ -510,23 +625,28 @@ public sealed class LookifyOptions {
 - `UserAgent`: enviado nas requisições aos provedores.
 - `TimeOut`: tempo limite das requisições HTTP.
 - `CepProviders` / `CnpjProviders` / `VehiclePlateProviders` / `FipeProviders` / `IbgeProviders` /
-  `BankProviders`: listas que definem **quais provedores participam e em que ordem** o fallback é
-  tentado. Por padrão:
+  `BankProviders` / `HolidayProviders` / `WeatherProviders`: listas que definem **quais provedores
+  participam e em que ordem** o fallback é tentado. Por padrão:
   - CEP: `[ViaCep, BrasilApi, OpenCep, AwesomeApi]`
   - CNPJ: `[BrasilApi, ReceitaWs, Publica, MinhaReceita]`
   - Placa: `[PlacaFipe]`
   - FIPE: `[BrasilApi, Parallelum]`
   - IBGE: `[Ibge, BrasilApi]`
   - Bancos: `[BrasilApi]`
+  - Feriados: `[BrasilApi, NagerDate]`
+  - Previsão do tempo: `[OpenMeteo, Cptec]`
 - Uma propriedade `CepLookifyProviderOptions`/`CnpjLookifyProviderOptions`/
   `VehiclePlateLookifyProviderOptions`/`FipeLookifyProviderOptions`/`IbgeLookifyProviderOptions`/
-  `BankLookifyProviderOptions` por provedor (`ViaCep`, `BrasilApi`, `CepOpenCep`, `CepAwesomeApi`
-  para CEP; `CnpjBrasilApi`, `CnpjReceitaWs`, `CnpjPublica`, `CnpjMinhaReceita` para CNPJ;
-  `PlacaFipe` para placa; `FipeBrasilApi`, `FipeParallelum` para FIPE; `Ibge`, `IbgeBrasilApi` para
-  localidades; `BankBrasilApi` para bancos), cada uma com `Enabled` (bool) e `BaseAddress` (string)
-  — um provedor desabilitado é pulado mesmo que apareça em `CepProviders`/`CnpjProviders`/
-  `VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`. `PlacaFipe` tem ainda
-  `Token` (string), lido por padrão da variável de ambiente `LOOKIFY_PLACAFIPE_TOKEN`.
+  `BankLookifyProviderOptions`/`HolidayLookifyProviderOptions`/`WeatherLookifyProviderOptions` por
+  provedor (`ViaCep`, `BrasilApi`, `CepOpenCep`, `CepAwesomeApi` para CEP; `CnpjBrasilApi`,
+  `CnpjReceitaWs`, `CnpjPublica`, `CnpjMinhaReceita` para CNPJ; `PlacaFipe` para placa;
+  `FipeBrasilApi`, `FipeParallelum` para FIPE; `Ibge`, `IbgeBrasilApi` para localidades;
+  `BankBrasilApi` para bancos; `HolidayBrasilApi`, `HolidayNagerDate` para feriados;
+  `WeatherOpenMeteo`, `WeatherCptec` para previsão do tempo), cada uma com `Enabled` (bool) e
+  `BaseAddress` (string) — um provedor desabilitado é pulado mesmo que apareça em
+  `CepProviders`/`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/
+  `BankProviders`/`HolidayProviders`/`WeatherProviders`. `PlacaFipe` tem ainda `Token` (string),
+  lido por padrão da variável de ambiente `LOOKIFY_PLACAFIPE_TOKEN`.
 
 ### Configurando via código
 
@@ -564,7 +684,8 @@ versão** — é assim que o `LookifyConsoleTester` deste repositório está con
 ## Comportamento de fallback
 
 Ao consultar, os provedores habilitados são tentados **na ordem definida** em `CepProviders`/
-`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`:
+`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`/
+`HolidayProviders`/`WeatherProviders`:
 
 1. Se um provedor falhar (erro HTTP, timeout, falha de desserialização, etc.), a falha é logada via
    `ILogger` e o próximo provedor da lista é tentado.

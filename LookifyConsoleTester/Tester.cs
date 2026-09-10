@@ -17,7 +17,9 @@ internal sealed class Tester(
             Console.WriteLine("4. Test FIPE Lookup");
             Console.WriteLine("5. Test IBGE Lookup");
             Console.WriteLine("6. Test Bank Lookup");
-            Console.WriteLine("7. Exit");
+            Console.WriteLine("7. Test Holiday Lookup");
+            Console.WriteLine("8. Test Weather Lookup");
+            Console.WriteLine("9. Exit");
             Console.WriteLine();
             Console.Write("Select an option: ");
 
@@ -43,6 +45,12 @@ internal sealed class Tester(
                     await _scenarios.TestBankLookup();
                     break;
                 case "7":
+                    await _scenarios.TestHolidayLookup();
+                    break;
+                case "8":
+                    await _scenarios.TestWeatherLookup();
+                    break;
+                case "9":
                     Environment.Exit(0);
                     continue;
                 default:

@@ -228,4 +228,55 @@ internal sealed class TestScenarios(
             Console.WriteLine($"Error: {ex.Message}");
         }
     }
+
+    public async Task TestHolidayLookup()
+    {
+        Console.WriteLine("Testing Holiday Lookup...");
+
+        Console.Write("Enter a year (e.g. 2026): ");
+        var yearInput = Console.ReadLine();
+
+        try {
+            if (!int.TryParse(yearInput, out var year)) {
+                Console.WriteLine("No valid year was provided.");
+                return;
+            }
+
+            var holidays = await _lookifyService.Holiday.GetHolidaysAsync(year);
+            Console.WriteLine($"{holidays.Count} holidays found:");
+            foreach (var holiday in holidays) {
+                Console.WriteLine($"  {holiday.Date:yyyy-MM-dd} - {holiday.LocalName} ({holiday.Type})");
+            }
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    public async Task TestWeatherLookup()
+    {
+        Console.WriteLine("Testing Weather Lookup...");
+
+        Console.Write("Enter a city name (e.g. Bom Jesus): ");
+        var cityName = Console.ReadLine();
+
+        try {
+            if (string.IsNullOrWhiteSpace(cityName)) {
+                Console.WriteLine("No city name was provided.");
+                return;
+            }
+
+            Console.Write("Enter a state/UF to disambiguate (optional, e.g. PI): ");
+            var state = Console.ReadLine();
+
+            var forecast = await _lookifyService.Weather.GetForecastByCityNameAsync(cityName, state);
+            Console.WriteLine($"{forecast.Count} days found:");
+            foreach (var day in forecast) {
+                Console.WriteLine($"  {day.Date:yyyy-MM-dd} - {day.City}/{day.State} - {day.ConditionDescription} - Min: {day.MinTemperature} Max: {day.MaxTemperature} UV: {day.UvIndex}");
+            }
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
 }

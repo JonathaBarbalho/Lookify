@@ -2,18 +2,23 @@ using Lookify.Bank;
 using Lookify.Cep;
 using Lookify.Cnpj;
 using Lookify.Fipe;
+using Lookify.Holiday;
 using Lookify.Ibge;
 using Lookify.Providers.AwesomeApi;
 using Lookify.Providers.BrasilApi;
+using Lookify.Providers.Cptec;
 using Lookify.Providers.Ibge;
 using Lookify.Providers.MinhaReceita;
+using Lookify.Providers.NagerDate;
 using Lookify.Providers.OpenCep;
+using Lookify.Providers.OpenMeteo;
 using Lookify.Providers.Parallelum;
 using Lookify.Providers.PlacaFipe;
 using Lookify.Providers.Publica;
 using Lookify.Providers.ReceitaWs;
 using Lookify.Providers.ViaCep;
 using Lookify.VehiclePlate;
+using Lookify.Weather;
 
 namespace Lookify;
 
@@ -188,6 +193,56 @@ public sealed class LookifyOptions {
     {
         return provider switch {
             BankLookifyProviderEnum.BrasilApi => BankBrasilApi,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region HOLIDAY
+    public HolidayLookifyProviderOptions HolidayBrasilApi { get; set; } = new() {
+        BaseAddress = BrasilApiHolidayProviderRequest.BaseAddress
+    };
+
+    public HolidayLookifyProviderOptions HolidayNagerDate { get; set; } = new() {
+        BaseAddress = NagerDateHolidayProviderRequest.BaseAddress
+    };
+
+    public List<HolidayLookifyProviderEnum> HolidayProviders { get; set; } = new() {
+        HolidayLookifyProviderEnum.BrasilApi,
+        HolidayLookifyProviderEnum.NagerDate
+    };
+
+    internal HolidayLookifyProviderOptions GetProviderOptions(
+        HolidayLookifyProviderEnum provider)
+    {
+        return provider switch {
+            HolidayLookifyProviderEnum.BrasilApi => HolidayBrasilApi,
+            HolidayLookifyProviderEnum.NagerDate => HolidayNagerDate,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region WEATHER
+    public WeatherLookifyProviderOptions WeatherOpenMeteo { get; set; } = new() {
+        BaseAddress = OpenMeteoWeatherProviderRequest.BaseAddress
+    };
+
+    public WeatherLookifyProviderOptions WeatherCptec { get; set; } = new() {
+        BaseAddress = CptecWeatherProviderRequest.BaseAddress
+    };
+
+    public List<WeatherLookifyProviderEnum> WeatherProviders { get; set; } = new() {
+        WeatherLookifyProviderEnum.OpenMeteo,
+        WeatherLookifyProviderEnum.Cptec
+    };
+
+    internal WeatherLookifyProviderOptions GetProviderOptions(
+        WeatherLookifyProviderEnum provider)
+    {
+        return provider switch {
+            WeatherLookifyProviderEnum.OpenMeteo => WeatherOpenMeteo,
+            WeatherLookifyProviderEnum.Cptec => WeatherCptec,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }
