@@ -16,7 +16,8 @@ internal sealed class Tester(
             Console.WriteLine("3. Test Vehicle Plate Lookup");
             Console.WriteLine("4. Test FIPE Lookup");
             Console.WriteLine("5. Test IBGE Lookup");
-            Console.WriteLine("6. Exit");
+            Console.WriteLine("6. Test Bank Lookup");
+            Console.WriteLine("7. Exit");
             Console.WriteLine();
             Console.Write("Select an option: ");
 
@@ -39,6 +40,9 @@ internal sealed class Tester(
                     await _scenarios.TestIbgeLookup();
                     break;
                 case "6":
+                    await _scenarios.TestBankLookup();
+                    break;
+                case "7":
                     Environment.Exit(0);
                     continue;
                 default:

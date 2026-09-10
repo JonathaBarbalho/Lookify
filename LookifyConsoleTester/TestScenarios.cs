@@ -197,4 +197,35 @@ internal sealed class TestScenarios(
             Console.WriteLine($"Error: {ex.Message}");
         }
     }
+
+    public async Task TestBankLookup()
+    {
+        Console.WriteLine("Testing Bank Lookup...");
+
+        try {
+            var banks = await _lookifyService.Bank.GetAllBanksAsync();
+            Console.WriteLine($"{banks.Count} banks found. Showing the first 5:");
+            foreach (var bank in banks.Take(5)) {
+                Console.WriteLine($"  {bank.Code} - {bank.Name}");
+            }
+
+            Console.Write("Enter a bank code (e.g. 1 for Banco do Brasil): ");
+            var codeInput = Console.ReadLine();
+            if (!int.TryParse(codeInput, out var code)) {
+                Console.WriteLine("No valid bank code was provided.");
+                return;
+            }
+
+            var selectedBank = await _lookifyService.Bank.GetBankByCodeAsync(code);
+            Console.WriteLine($"Code: {selectedBank.Code}");
+            Console.WriteLine($"Ispb: {selectedBank.Ispb}");
+            Console.WriteLine($"Name: {selectedBank.Name}");
+            Console.WriteLine($"Full Name: {selectedBank.FullName}");
+            Console.WriteLine($"Cnpj: {selectedBank.Cnpj}");
+            Console.WriteLine($"Address: {selectedBank.Street}, {selectedBank.District}, {selectedBank.City} - {selectedBank.State}");
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
 }

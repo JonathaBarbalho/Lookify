@@ -1,7 +1,7 @@
 # Lookify
 
-Biblioteca .NET para consulta de **CEP**, **CNPJ**, **placa de veículo**, **tabela FIPE** e
-**localidades do IBGE**, com fallback automático entre múltiplos provedores.
+Biblioteca .NET para consulta de **CEP**, **CNPJ**, **placa de veículo**, **tabela FIPE**,
+**localidades do IBGE** e **bancos**, com fallback automático entre múltiplos provedores.
 
 ## Recursos
 
@@ -14,6 +14,7 @@ Biblioteca .NET para consulta de **CEP**, **CNPJ**, **placa de veículo**, **tab
   fallback entre **BrasilAPI** e **Parallelum**.
 - Consulta de estados, municípios e regiões do **IBGE**, com fallback entre a API oficial
   (`servicodados.ibge.gov.br`) e o espelho da **BrasilAPI**.
+- Consulta de bancos brasileiros (código, ISPB, nome, endereço da sede) via **BrasilAPI**.
 - Fallback automático: se um provedor falhar, o próximo da lista é tentado, na ordem configurada.
 - Cada provedor pode ser habilitado/desabilitado e reordenado individualmente.
 - Integração nativa com o padrão de DI do .NET (`IHttpClientFactory`, `IOptions<T>`, `ILogger`).
@@ -43,6 +44,7 @@ public sealed class LookifyService {
     public IVehiclePlateLookifyService VehiclePlate { get; }
     public IFipeLookifyService Fipe { get; }
     public IIbgeLookifyService Ibge { get; }
+    public IBankLookifyService Bank { get; }
 }
 ```
 
@@ -126,6 +128,24 @@ public sealed class MeuServico(LookifyService lookify) {
     public async Task<List<IbgeCityLookifyResultDto>> ObterMunicipiosAsync(string uf)
     {
         return await lookify.Ibge.GetCitiesByStateAsync(uf);
+    }
+}
+```
+
+### Consultar um banco
+
+```csharp
+public sealed class MeuServico(LookifyService lookify) {
+    public async Task<string?> ObterNomeDoBancoAsync(int codigoBanco)
+    {
+        try {
+            var resultado = await lookify.Bank.GetBankByCodeAsync(codigoBanco);
+            return resultado.Name;
+        }
+        catch (Exception ex) {
+            // todos os provedores falharam
+            return null;
+        }
     }
 }
 ```
@@ -442,6 +462,41 @@ Campos de `IbgeRegionLookifyResultDto`:
 | `Name`     | `string?` | Nome da região (ex.: "Sudeste") |
 | `Acronym`  | `string?` | Sigla da região (ex.: "SE")     |
 
+## Consulta de Bancos
+
+Assim como FIPE e IBGE, bancos são uma consulta de catálogo (listar todos, ou um pelo código),
+não de identificador único:
+
+```csharp
+Task<List<BankLookifyResultDto>> GetAllBanksAsync(CancellationToken cancellationToken = default);
+
+Task<BankLookifyResultDto> GetBankByCodeAsync(int code, CancellationToken cancellationToken = default);
+```
+
+`code` é o código numérico de compensação do banco (ex.: `1` para o Banco do Brasil) — não é o
+ISPB. Nem todo banco tem código de compensação (alguns, como "Selic" e "Bacen", aparecem só com
+ISPB); nesses casos `GetBankByCodeAsync` não encontra o registro.
+
+Provedores disponíveis (`BankLookifyProviderEnum`): `BrasilApi`.
+
+Campos de `BankLookifyResultDto`:
+
+| Campo         | Tipo      | Descrição                          |
+|----------------|-----------|-------------------------------------|
+| `Code`         | `int?`    | Código de compensação (pode ser `null`) |
+| `Ispb`         | `string?` | Código ISPB (identificador no SPB)  |
+| `Name`         | `string?` | Nome (curto)                        |
+| `FullName`     | `string?` | Nome completo                       |
+| `Cnpj`         | `string?` | CNPJ da instituição                 |
+| `Street`       | `string?` | Logradouro da sede                  |
+| `Number`       | `string?` | Número da sede                      |
+| `Complement`   | `string?` | Complemento da sede                 |
+| `District`     | `string?` | Bairro da sede                      |
+| `City`         | `string?` | Cidade da sede                      |
+| `State`        | `string?` | UF da sede                          |
+| `ZipCode`      | `string?` | CEP da sede                         |
+| `LogoUrl`      | `string?` | URL do logo do banco                |
+
 ## Configuração (`LookifyOptions`)
 
 ```csharp
@@ -454,23 +509,24 @@ public sealed class LookifyOptions {
 
 - `UserAgent`: enviado nas requisições aos provedores.
 - `TimeOut`: tempo limite das requisições HTTP.
-- `CepProviders` / `CnpjProviders` / `VehiclePlateProviders` / `FipeProviders` / `IbgeProviders`:
-  listas que definem **quais provedores participam e em que ordem** o fallback é tentado. Por
-  padrão:
+- `CepProviders` / `CnpjProviders` / `VehiclePlateProviders` / `FipeProviders` / `IbgeProviders` /
+  `BankProviders`: listas que definem **quais provedores participam e em que ordem** o fallback é
+  tentado. Por padrão:
   - CEP: `[ViaCep, BrasilApi, OpenCep, AwesomeApi]`
   - CNPJ: `[BrasilApi, ReceitaWs, Publica, MinhaReceita]`
   - Placa: `[PlacaFipe]`
   - FIPE: `[BrasilApi, Parallelum]`
   - IBGE: `[Ibge, BrasilApi]`
+  - Bancos: `[BrasilApi]`
 - Uma propriedade `CepLookifyProviderOptions`/`CnpjLookifyProviderOptions`/
-  `VehiclePlateLookifyProviderOptions`/`FipeLookifyProviderOptions`/`IbgeLookifyProviderOptions`
-  por provedor (`ViaCep`, `BrasilApi`, `CepOpenCep`, `CepAwesomeApi` para CEP; `CnpjBrasilApi`,
-  `CnpjReceitaWs`, `CnpjPublica`, `CnpjMinhaReceita` para CNPJ; `PlacaFipe` para placa;
-  `FipeBrasilApi`, `FipeParallelum` para FIPE; `Ibge`, `IbgeBrasilApi` para localidades), cada uma
-  com `Enabled` (bool) e `BaseAddress` (string) — um provedor desabilitado é pulado mesmo que
-  apareça em `CepProviders`/`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`.
-  `PlacaFipe` tem ainda `Token` (string), lido por padrão da variável de ambiente
-  `LOOKIFY_PLACAFIPE_TOKEN`.
+  `VehiclePlateLookifyProviderOptions`/`FipeLookifyProviderOptions`/`IbgeLookifyProviderOptions`/
+  `BankLookifyProviderOptions` por provedor (`ViaCep`, `BrasilApi`, `CepOpenCep`, `CepAwesomeApi`
+  para CEP; `CnpjBrasilApi`, `CnpjReceitaWs`, `CnpjPublica`, `CnpjMinhaReceita` para CNPJ;
+  `PlacaFipe` para placa; `FipeBrasilApi`, `FipeParallelum` para FIPE; `Ibge`, `IbgeBrasilApi` para
+  localidades; `BankBrasilApi` para bancos), cada uma com `Enabled` (bool) e `BaseAddress` (string)
+  — um provedor desabilitado é pulado mesmo que apareça em `CepProviders`/`CnpjProviders`/
+  `VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`. `PlacaFipe` tem ainda
+  `Token` (string), lido por padrão da variável de ambiente `LOOKIFY_PLACAFIPE_TOKEN`.
 
 ### Configurando via código
 
@@ -508,7 +564,7 @@ versão** — é assim que o `LookifyConsoleTester` deste repositório está con
 ## Comportamento de fallback
 
 Ao consultar, os provedores habilitados são tentados **na ordem definida** em `CepProviders`/
-`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`:
+`CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`:
 
 1. Se um provedor falhar (erro HTTP, timeout, falha de desserialização, etc.), a falha é logada via
    `ILogger` e o próximo provedor da lista é tentado.

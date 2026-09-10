@@ -1,3 +1,4 @@
+using Lookify.Bank;
 using Lookify.Cep;
 using Lookify.Cnpj;
 using Lookify.Fipe;
@@ -168,6 +169,25 @@ public sealed class LookifyOptions {
         return provider switch {
             IbgeLookifyProviderEnum.Ibge => Ibge,
             IbgeLookifyProviderEnum.BrasilApi => IbgeBrasilApi,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region BANK
+    public BankLookifyProviderOptions BankBrasilApi { get; set; } = new() {
+        BaseAddress = BrasilApiBankProviderRequest.BaseAddress
+    };
+
+    public List<BankLookifyProviderEnum> BankProviders { get; set; } = new() {
+        BankLookifyProviderEnum.BrasilApi
+    };
+
+    internal BankLookifyProviderOptions GetProviderOptions(
+        BankLookifyProviderEnum provider)
+    {
+        return provider switch {
+            BankLookifyProviderEnum.BrasilApi => BankBrasilApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }

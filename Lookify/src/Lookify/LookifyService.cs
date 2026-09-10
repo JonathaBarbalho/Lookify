@@ -1,3 +1,4 @@
+using Lookify.Bank;
 using Lookify.Cep;
 using Lookify.Cnpj;
 using Lookify.Fipe;
@@ -19,6 +20,8 @@ public sealed class LookifyService {
     public IFipeLookifyService Fipe { get; }
 
     public IIbgeLookifyService Ibge { get; }
+
+    public IBankLookifyService Bank { get; }
 
     public LookifyService(
         IHttpClientFactory httpFactory,
@@ -46,6 +49,11 @@ public sealed class LookifyService {
             logger);
 
         Ibge = new IbgeLookifyService(
+            httpFactory,
+            options,
+            logger);
+
+        Bank = new BankLookifyService(
             httpFactory,
             options,
             logger);
