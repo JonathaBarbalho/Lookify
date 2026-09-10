@@ -31,33 +31,15 @@ internal sealed class CnpjLookifyService(
         }
 
         var sanitizedCnpj = SanitizeCnpj(cnpj);
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
 
-        foreach (var provider in enabledProviders) {
-            try {
-                var service = GetProvider(provider).Services
-                    .OfType<ICnpjProviderService>()
-                    .First();
-
-                return await service.RequestAsync(
-                    sanitizedCnpj,
-                    _httpFactory,
-                    cancellationToken);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar o CNPJ {Cnpj} no provedor {Provider}.",
-                    sanitizedCnpj,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar o CNPJ {sanitizedCnpj} em nenhum provedor configurado.",
-            new AggregateException(failures));
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
+            $"o CNPJ {sanitizedCnpj}",
+            _logger,
+            provider => GetService(provider).RequestAsync(
+                sanitizedCnpj,
+                _httpFactory,
+                cancellationToken));
     }
 
     private string SanitizeCnpj(string cnpj)
@@ -85,4 +67,9 @@ internal sealed class CnpjLookifyService(
             CnpjLookifyProviderEnum.MinhaReceita => _minhaReceita,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
+
+    private static ICnpjProviderService GetService(CnpjLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<ICnpjProviderService>()
+            .First();
 }

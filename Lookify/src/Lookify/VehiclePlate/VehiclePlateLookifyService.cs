@@ -30,35 +30,16 @@ internal sealed class VehiclePlateLookifyService(
         }
 
         var sanitizedPlate = SanitizePlate(plate);
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
 
-        foreach (var provider in enabledProviders) {
-            try {
-                var providerOptions = _options.GetProviderOptions(provider);
-                var service = GetProvider(provider).Services
-                    .OfType<IVehiclePlateProviderService>()
-                    .First();
-
-                return await service.RequestAsync(
-                    sanitizedPlate,
-                    providerOptions.Token,
-                    _httpFactory,
-                    cancellationToken);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar a placa {Plate} no provedor {Provider}.",
-                    sanitizedPlate,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar a placa {sanitizedPlate} em nenhum provedor configurado.",
-            new AggregateException(failures));
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
+            $"a placa {sanitizedPlate}",
+            _logger,
+            provider => GetService(provider).RequestAsync(
+                sanitizedPlate,
+                _options.GetProviderOptions(provider).Token,
+                _httpFactory,
+                cancellationToken));
     }
 
     private static string SanitizePlate(string plate)
@@ -83,4 +64,9 @@ internal sealed class VehiclePlateLookifyService(
             VehiclePlateLookifyProviderEnum.PlacaFipe => _placaFipe,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
+
+    private static IVehiclePlateProviderService GetService(VehiclePlateLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IVehiclePlateProviderService>()
+            .First();
 }

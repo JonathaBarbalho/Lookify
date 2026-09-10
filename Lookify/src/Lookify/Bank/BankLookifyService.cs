@@ -19,8 +19,10 @@ internal sealed class BankLookifyService(
     public async Task<List<BankLookifyResultDto>> GetAllBanksAsync(
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             "bancos",
+            _logger,
             provider => GetService(provider).GetAllBanksAsync(
                 _httpFactory,
                 cancellationToken));
@@ -30,38 +32,14 @@ internal sealed class BankLookifyService(
         int code,
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"banco de código {code}",
+            _logger,
             provider => GetService(provider).GetBankByCodeAsync(
                 code,
                 _httpFactory,
                 cancellationToken));
-    }
-
-    private async Task<TResult> ExecuteAsync<TResult>(
-        string operationDescription,
-        Func<BankLookifyProviderEnum, Task<TResult>> request)
-    {
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
-
-        foreach (var provider in enabledProviders) {
-            try {
-                return await request(provider);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar {Operation} no provedor {Provider}.",
-                    operationDescription,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar {operationDescription} em nenhum provedor configurado.",
-            new AggregateException(failures));
     }
 
     private List<BankLookifyProviderEnum> GetEnabledProviders() =>

@@ -24,8 +24,10 @@ internal sealed class WeatherLookifyService(
         int? days = null,
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"previsão do tempo para {latitude},{longitude}",
+            _logger,
             provider => GetService(provider).GetForecastByCoordinatesAsync(
                 latitude,
                 longitude,
@@ -49,40 +51,16 @@ internal sealed class WeatherLookifyService(
             ? $"previsão do tempo de {cityName}"
             : $"previsão do tempo de {cityName}/{normalizedState}";
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             operationDescription,
+            _logger,
             provider => GetService(provider).GetForecastByCityNameAsync(
                 cityName,
                 normalizedState,
                 days,
                 _httpFactory,
                 cancellationToken));
-    }
-
-    private async Task<TResult> ExecuteAsync<TResult>(
-        string operationDescription,
-        Func<WeatherLookifyProviderEnum, Task<TResult>> request)
-    {
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
-
-        foreach (var provider in enabledProviders) {
-            try {
-                return await request(provider);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar {Operation} no provedor {Provider}.",
-                    operationDescription,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar {operationDescription} em nenhum provedor configurado.",
-            new AggregateException(failures));
     }
 
     private List<WeatherLookifyProviderEnum> GetEnabledProviders() =>

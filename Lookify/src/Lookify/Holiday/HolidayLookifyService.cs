@@ -22,33 +22,14 @@ internal sealed class HolidayLookifyService(
         int year,
         CancellationToken cancellationToken = default)
     {
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
-
-        foreach (var provider in enabledProviders) {
-            try {
-                var service = GetProvider(provider).Services
-                    .OfType<IHolidayProviderService>()
-                    .First();
-
-                return await service.GetHolidaysAsync(
-                    year,
-                    _httpFactory,
-                    cancellationToken);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar os feriados de {Year} no provedor {Provider}.",
-                    year,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar os feriados de {year} em nenhum provedor configurado.",
-            new AggregateException(failures));
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
+            $"os feriados de {year}",
+            _logger,
+            provider => GetService(provider).GetHolidaysAsync(
+                year,
+                _httpFactory,
+                cancellationToken));
     }
 
     private List<HolidayLookifyProviderEnum> GetEnabledProviders() =>
@@ -62,4 +43,9 @@ internal sealed class HolidayLookifyService(
             HolidayLookifyProviderEnum.NagerDate => _nagerDate,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
+
+    private static IHolidayProviderService GetService(HolidayLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<IHolidayProviderService>()
+            .First();
 }

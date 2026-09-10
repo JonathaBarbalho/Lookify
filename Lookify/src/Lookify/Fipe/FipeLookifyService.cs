@@ -21,8 +21,10 @@ internal sealed class FipeLookifyService(
     public async Task<List<FipeReferenceTableLookifyResultDto>> GetReferenceTablesAsync(
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             "tabelas de referência FIPE",
+            _logger,
             provider => GetService(provider).GetReferenceTablesAsync(
                 _httpFactory,
                 cancellationToken));
@@ -33,8 +35,10 @@ internal sealed class FipeLookifyService(
         int? referenceTable = null,
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"marcas FIPE de {vehicleType}",
+            _logger,
             provider => GetService(provider).GetBrandsAsync(
                 vehicleType,
                 referenceTable,
@@ -50,8 +54,10 @@ internal sealed class FipeLookifyService(
     {
         RequireNotEmpty(brandCode, nameof(brandCode));
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"modelos FIPE da marca {brandCode}",
+            _logger,
             provider => GetService(provider).GetModelsAsync(
                 vehicleType,
                 brandCode,
@@ -70,8 +76,10 @@ internal sealed class FipeLookifyService(
         RequireNotEmpty(brandCode, nameof(brandCode));
         RequireNotEmpty(modelCode, nameof(modelCode));
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"anos FIPE do modelo {modelCode}",
+            _logger,
             provider => GetService(provider).GetModelYearsAsync(
                 vehicleType,
                 brandCode,
@@ -93,8 +101,10 @@ internal sealed class FipeLookifyService(
         RequireNotEmpty(modelCode, nameof(modelCode));
         RequireNotEmpty(yearCode, nameof(yearCode));
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"valor FIPE do veículo {brandCode}/{modelCode}/{yearCode}",
+            _logger,
             provider => GetService(provider).GetVehiclePriceAsync(
                 vehicleType,
                 brandCode,
@@ -112,39 +122,15 @@ internal sealed class FipeLookifyService(
     {
         RequireNotEmpty(fipeCode, nameof(fipeCode));
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"valor FIPE do código {fipeCode}",
+            _logger,
             provider => GetService(provider).GetPriceByFipeCodeAsync(
                 fipeCode,
                 referenceTable,
                 _httpFactory,
                 cancellationToken));
-    }
-
-    private async Task<TResult> ExecuteAsync<TResult>(
-        string operationDescription,
-        Func<FipeLookifyProviderEnum, Task<TResult>> request)
-    {
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
-
-        foreach (var provider in enabledProviders) {
-            try {
-                return await request(provider);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar {Operation} no provedor {Provider}.",
-                    operationDescription,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar {operationDescription} em nenhum provedor configurado.",
-            new AggregateException(failures));
     }
 
     private static void RequireNotEmpty(

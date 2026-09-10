@@ -26,8 +26,10 @@ internal sealed class IbgeLookifyService(
     public async Task<List<IbgeStateLookifyResultDto>> GetStatesAsync(
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             "estados do IBGE",
+            _logger,
             provider => GetService(provider).GetStatesAsync(
                 _httpFactory,
                 cancellationToken));
@@ -39,8 +41,10 @@ internal sealed class IbgeLookifyService(
     {
         var sanitizedUf = SanitizeUf(uf);
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"estado {sanitizedUf} do IBGE",
+            _logger,
             provider => GetService(provider).GetStateAsync(
                 sanitizedUf,
                 _httpFactory,
@@ -53,8 +57,10 @@ internal sealed class IbgeLookifyService(
     {
         var sanitizedUf = SanitizeUf(uf);
 
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             $"municípios do estado {sanitizedUf} do IBGE",
+            _logger,
             provider => GetService(provider).GetCitiesByStateAsync(
                 sanitizedUf,
                 _httpFactory,
@@ -64,8 +70,10 @@ internal sealed class IbgeLookifyService(
     public async Task<List<IbgeCityLookifyResultDto>> GetAllCitiesAsync(
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             "todos os municípios do IBGE",
+            _logger,
             provider => GetService(provider).GetAllCitiesAsync(
                 _httpFactory,
                 cancellationToken));
@@ -74,37 +82,13 @@ internal sealed class IbgeLookifyService(
     public async Task<List<IbgeRegionLookifyResultDto>> GetRegionsAsync(
         CancellationToken cancellationToken = default)
     {
-        return await ExecuteAsync(
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
             "regiões do IBGE",
+            _logger,
             provider => GetService(provider).GetRegionsAsync(
                 _httpFactory,
                 cancellationToken));
-    }
-
-    private async Task<TResult> ExecuteAsync<TResult>(
-        string operationDescription,
-        Func<IbgeLookifyProviderEnum, Task<TResult>> request)
-    {
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
-
-        foreach (var provider in enabledProviders) {
-            try {
-                return await request(provider);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar {Operation} no provedor {Provider}.",
-                    operationDescription,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar {operationDescription} em nenhum provedor configurado.",
-            new AggregateException(failures));
     }
 
     private static string SanitizeUf(

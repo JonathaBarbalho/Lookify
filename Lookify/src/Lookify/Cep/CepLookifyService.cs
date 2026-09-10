@@ -1,4 +1,4 @@
-﻿using Lookify.Providers;
+using Lookify.Providers;
 using Lookify.Providers.AwesomeApi;
 using Lookify.Providers.BrasilApi;
 using Lookify.Providers.OpenCep;
@@ -31,33 +31,15 @@ internal sealed class CepLookifyService(
         }
 
         var sanitizedZipCode = SanitizeZipCode(zipCode);
-        var enabledProviders = GetEnabledProviders();
-        var failures = new List<Exception>();
 
-        foreach (var provider in enabledProviders) {
-            try {
-                var service = GetProvider(provider).Services
-                    .OfType<ICepProviderService>()
-                    .First();
-
-                return await service.RequestAsync(
-                    sanitizedZipCode,
-                    _httpFactory,
-                    cancellationToken);
-            }
-            catch (Exception exception) {
-                failures.Add(exception);
-                _logger.LogError(
-                    exception,
-                    "Falha ao consultar o CEP {ZipCode} no provedor {Provider}.",
-                    sanitizedZipCode,
-                    provider);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Não foi possível consultar o CEP {sanitizedZipCode} em nenhum provedor configurado.",
-            new AggregateException(failures));
+        return await ProviderFallback.ExecuteAsync(
+            GetEnabledProviders(),
+            $"o CEP {sanitizedZipCode}",
+            _logger,
+            provider => GetService(provider).RequestAsync(
+                sanitizedZipCode,
+                _httpFactory,
+                cancellationToken));
     }
 
     private string SanitizeZipCode(string zipCode)
@@ -71,7 +53,6 @@ internal sealed class CepLookifyService(
 
         return satiziedZipCode;
     }
-        
 
     private List<CepLookifyProviderEnum> GetEnabledProviders() =>
         _options.CepProviders
@@ -86,4 +67,9 @@ internal sealed class CepLookifyService(
             CepLookifyProviderEnum.AwesomeApi => _awesomeApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
+
+    private static ICepProviderService GetService(CepLookifyProviderEnum provider) =>
+        GetProvider(provider).Services
+            .OfType<ICepProviderService>()
+            .First();
 }
