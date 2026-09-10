@@ -14,7 +14,7 @@ internal sealed class TestScenarios(
 
         try {
             if (string.IsNullOrWhiteSpace(zipCode)) {
-                Console.WriteLine("Invalid CEP format.");
+                Console.WriteLine("No CEP was provided.");
                 return;
             }
 
@@ -40,7 +40,7 @@ internal sealed class TestScenarios(
 
         try {
             if (string.IsNullOrWhiteSpace(cnpj)) {
-                Console.WriteLine("Invalid CNPJ format.");
+                Console.WriteLine("No CNPJ was provided.");
                 return;
             }
 
@@ -50,6 +50,34 @@ internal sealed class TestScenarios(
             Console.WriteLine($"Company Name: {result.CompanyName}");
             Console.WriteLine($"Trade Name: {result.TradeName}");
             Console.WriteLine($"Registration Status: {result.RegistrationStatusDescription}");
+            Console.WriteLine($"City: {result.City}");
+            Console.WriteLine($"State: {result.State}");
+        }
+        catch (Exception ex) {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    public async Task TestVehiclePlateLookup()
+    {
+        Console.WriteLine("Testing Vehicle Plate Lookup...");
+
+        Console.Write("Enter a plate: ");
+        var plate = Console.ReadLine();
+
+        try {
+            if (string.IsNullOrWhiteSpace(plate)) {
+                Console.WriteLine("No plate was provided.");
+                return;
+            }
+
+            var result = await _lookifyService.VehiclePlate.ConsultAsync(plate);
+
+            Console.WriteLine($"Plate: {result.Plate}");
+            Console.WriteLine($"Brand: {result.Brand}");
+            Console.WriteLine($"Model: {result.Model}");
+            Console.WriteLine($"Manufacture Year: {result.ManufactureYear}");
+            Console.WriteLine($"Color: {result.Color}");
             Console.WriteLine($"City: {result.City}");
             Console.WriteLine($"State: {result.State}");
         }

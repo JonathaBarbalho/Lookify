@@ -1,9 +1,11 @@
 using Lookify.Cep;
 using Lookify.Cnpj;
 using Lookify.Providers.BrasilApi;
+using Lookify.Providers.PlacaFipe;
 using Lookify.Providers.Publica;
 using Lookify.Providers.ReceitaWs;
 using Lookify.Providers.ViaCep;
+using Lookify.VehiclePlate;
 
 namespace Lookify;
 
@@ -67,6 +69,30 @@ public sealed class LookifyOptions {
             CnpjLookifyProviderEnum.BrasilApi => CnpjBrasilApi,
             CnpjLookifyProviderEnum.ReceitaWs => CnpjReceitaWs,
             CnpjLookifyProviderEnum.Publica => CnpjPublica,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region VehiclePlate
+    /// <summary>
+    /// Token do provedor PlacaFipe. Por padrão vem da variável de ambiente
+    /// <c>LOOKIFY_PLACAFIPE_TOKEN</c> — nunca deve ser hardcoded ou commitado.
+    /// </summary>
+    public VehiclePlateLookifyProviderOptions PlacaFipe { get; set; } = new() {
+        BaseAddress = PlacaFipeProviderRequest.BaseAddress,
+        Token = Environment.GetEnvironmentVariable("LOOKIFY_PLACAFIPE_TOKEN") ?? string.Empty
+    };
+
+    public List<VehiclePlateLookifyProviderEnum> VehiclePlateProviders { get; set; } = new() {
+        VehiclePlateLookifyProviderEnum.PlacaFipe
+    };
+
+    internal VehiclePlateLookifyProviderOptions GetProviderOptions(
+        VehiclePlateLookifyProviderEnum provider)
+    {
+        return provider switch {
+            VehiclePlateLookifyProviderEnum.PlacaFipe => PlacaFipe,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }

@@ -10,8 +10,8 @@ builder.Services.AddLogging(builder => {
     builder.AddConsole();
 });
 builder.Services.AddHttpClient();
+builder.Services.Configure<LookifyOptions>(builder.Configuration.GetSection("Lookify"));
 builder.Services.Configure<LookifyOptions>(options => {
-    options.CnpjPublica.Enabled = false;
 });
 
 builder.Services.AddTransient<LookifyService>();

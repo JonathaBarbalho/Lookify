@@ -13,7 +13,8 @@ internal sealed class Tester(
             Console.WriteLine("----------------------");
             Console.WriteLine("1. Test CEP Lookup");
             Console.WriteLine("2. Test CNPJ Lookup");
-            Console.WriteLine("3. Exit");
+            Console.WriteLine("3. Test Vehicle Plate Lookup");
+            Console.WriteLine("4. Exit");
             Console.WriteLine();
             Console.Write("Select an option: ");
 
@@ -27,6 +28,9 @@ internal sealed class Tester(
                     await _scenarios.TestCnpjLookup();
                     break;
                 case "3":
+                    await _scenarios.TestVehiclePlateLookup();
+                    break;
+                case "4":
                     Environment.Exit(0);
                     continue;
                 default:
