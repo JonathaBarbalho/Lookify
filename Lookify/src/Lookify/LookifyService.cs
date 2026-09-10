@@ -1,5 +1,7 @@
 using Lookify.Cep;
 using Lookify.Cnpj;
+using Lookify.Fipe;
+using Lookify.Ibge;
 using Lookify.VehiclePlate;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -13,6 +15,10 @@ public sealed class LookifyService {
     public ICnpjLookifyService Cnpj { get; }
 
     public IVehiclePlateLookifyService VehiclePlate { get; }
+
+    public IFipeLookifyService Fipe { get; }
+
+    public IIbgeLookifyService Ibge { get; }
 
     public LookifyService(
         IHttpClientFactory httpFactory,
@@ -30,6 +36,16 @@ public sealed class LookifyService {
             logger);
 
         VehiclePlate = new VehiclePlateLookifyService(
+            httpFactory,
+            options,
+            logger);
+
+        Fipe = new FipeLookifyService(
+            httpFactory,
+            options,
+            logger);
+
+        Ibge = new IbgeLookifyService(
             httpFactory,
             options,
             logger);

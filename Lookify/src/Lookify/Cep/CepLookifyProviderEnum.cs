@@ -2,5 +2,7 @@
 
 public enum CepLookifyProviderEnum {
     ViaCep,
-    BrasilApi
+    BrasilApi,
+    OpenCep,
+    AwesomeApi
 }

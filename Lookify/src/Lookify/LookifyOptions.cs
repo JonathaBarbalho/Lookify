@@ -1,6 +1,13 @@
 using Lookify.Cep;
 using Lookify.Cnpj;
+using Lookify.Fipe;
+using Lookify.Ibge;
+using Lookify.Providers.AwesomeApi;
 using Lookify.Providers.BrasilApi;
+using Lookify.Providers.Ibge;
+using Lookify.Providers.MinhaReceita;
+using Lookify.Providers.OpenCep;
+using Lookify.Providers.Parallelum;
 using Lookify.Providers.PlacaFipe;
 using Lookify.Providers.Publica;
 using Lookify.Providers.ReceitaWs;
@@ -27,9 +34,19 @@ public sealed class LookifyOptions {
         BaseAddress = BrasilApiCepProviderRequest.BaseAddress
     };
 
+    public CepLookifyProviderOptions CepOpenCep { get; set; } = new() {
+        BaseAddress = OpenCepProviderRequest.BaseAddress
+    };
+
+    public CepLookifyProviderOptions CepAwesomeApi { get; set; } = new() {
+        BaseAddress = AwesomeApiCepProviderRequest.BaseAddress
+    };
+
     public List<CepLookifyProviderEnum> CepProviders { get; set; } = new() {
         CepLookifyProviderEnum.ViaCep,
-        CepLookifyProviderEnum.BrasilApi
+        CepLookifyProviderEnum.BrasilApi,
+        CepLookifyProviderEnum.OpenCep,
+        CepLookifyProviderEnum.AwesomeApi
     };
 
     internal CepLookifyProviderOptions GetProviderOptions(
@@ -38,6 +55,8 @@ public sealed class LookifyOptions {
         return provider switch {
             CepLookifyProviderEnum.ViaCep => ViaCep,
             CepLookifyProviderEnum.BrasilApi => BrasilApi,
+            CepLookifyProviderEnum.OpenCep => CepOpenCep,
+            CepLookifyProviderEnum.AwesomeApi => CepAwesomeApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }
@@ -56,10 +75,15 @@ public sealed class LookifyOptions {
         BaseAddress = PublicaProviderRequest.BaseAddress
     };
 
+    public CnpjLookifyProviderOptions CnpjMinhaReceita { get; set; } = new() {
+        BaseAddress = MinhaReceitaProviderRequest.BaseAddress
+    };
+
     public List<CnpjLookifyProviderEnum> CnpjProviders { get; set; } = new() {
         CnpjLookifyProviderEnum.BrasilApi,
         CnpjLookifyProviderEnum.ReceitaWs,
-        CnpjLookifyProviderEnum.Publica
+        CnpjLookifyProviderEnum.Publica,
+        CnpjLookifyProviderEnum.MinhaReceita
     };
 
     internal CnpjLookifyProviderOptions GetProviderOptions(
@@ -69,12 +93,13 @@ public sealed class LookifyOptions {
             CnpjLookifyProviderEnum.BrasilApi => CnpjBrasilApi,
             CnpjLookifyProviderEnum.ReceitaWs => CnpjReceitaWs,
             CnpjLookifyProviderEnum.Publica => CnpjPublica,
+            CnpjLookifyProviderEnum.MinhaReceita => CnpjMinhaReceita,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }
     #endregion
 
-    #region VehiclePlate
+    #region VEHICLE PLATE
     /// <summary>
     /// Token do provedor PlacaFipe. Por padrão vem da variável de ambiente
     /// <c>LOOKIFY_PLACAFIPE_TOKEN</c> — nunca deve ser hardcoded ou commitado.
@@ -93,6 +118,56 @@ public sealed class LookifyOptions {
     {
         return provider switch {
             VehiclePlateLookifyProviderEnum.PlacaFipe => PlacaFipe,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region FIPE
+    public FipeLookifyProviderOptions FipeBrasilApi { get; set; } = new() {
+        BaseAddress = BrasilApiFipeBrandProviderRequest.BaseAddress
+    };
+
+    public FipeLookifyProviderOptions FipeParallelum { get; set; } = new() {
+        BaseAddress = ParallelumFipeBrandProviderRequest.BaseAddress
+    };
+
+    public List<FipeLookifyProviderEnum> FipeProviders { get; set; } = new() {
+        FipeLookifyProviderEnum.BrasilApi,
+        FipeLookifyProviderEnum.Parallelum
+    };
+
+    internal FipeLookifyProviderOptions GetProviderOptions(
+        FipeLookifyProviderEnum provider)
+    {
+        return provider switch {
+            FipeLookifyProviderEnum.BrasilApi => FipeBrasilApi,
+            FipeLookifyProviderEnum.Parallelum => FipeParallelum,
+            _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+        };
+    }
+    #endregion
+
+    #region IBGE
+    public IbgeLookifyProviderOptions Ibge { get; set; } = new() {
+        BaseAddress = IbgeStateProviderRequest.BaseAddress
+    };
+
+    public IbgeLookifyProviderOptions IbgeBrasilApi { get; set; } = new() {
+        BaseAddress = BrasilApiIbgeStateProviderRequest.BaseAddress
+    };
+
+    public List<IbgeLookifyProviderEnum> IbgeProviders { get; set; } = new() {
+        IbgeLookifyProviderEnum.Ibge,
+        IbgeLookifyProviderEnum.BrasilApi
+    };
+
+    internal IbgeLookifyProviderOptions GetProviderOptions(
+        IbgeLookifyProviderEnum provider)
+    {
+        return provider switch {
+            IbgeLookifyProviderEnum.Ibge => Ibge,
+            IbgeLookifyProviderEnum.BrasilApi => IbgeBrasilApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
     }

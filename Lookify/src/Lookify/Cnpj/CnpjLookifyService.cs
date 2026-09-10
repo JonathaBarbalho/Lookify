@@ -1,4 +1,5 @@
 using Lookify.Providers.BrasilApi;
+using Lookify.Providers.MinhaReceita;
 using Lookify.Providers.Publica;
 using Lookify.Providers.ReceitaWs;
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,11 @@ internal sealed class CnpjLookifyService(
                             cancellationToken),
                     CnpjLookifyProviderEnum.Publica =>
                         await PublicaProviderRequest.RequestAsync(
+                            sanitizedCnpj,
+                            _httpFactory,
+                            cancellationToken),
+                    CnpjLookifyProviderEnum.MinhaReceita =>
+                        await MinhaReceitaProviderRequest.RequestAsync(
                             sanitizedCnpj,
                             _httpFactory,
                             cancellationToken),

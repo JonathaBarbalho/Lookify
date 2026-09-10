@@ -1,4 +1,6 @@
-﻿using Lookify.Providers.BrasilApi;
+﻿using Lookify.Providers.AwesomeApi;
+using Lookify.Providers.BrasilApi;
+using Lookify.Providers.OpenCep;
 using Lookify.Providers.ViaCep;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -36,6 +38,16 @@ internal sealed class CepLookifyService(
                             cancellationToken),
                     CepLookifyProviderEnum.BrasilApi =>
                         await BrasilApiCepProviderRequest.RequestAsync(
+                            sanitizedZipCode,
+                            _httpFactory,
+                            cancellationToken),
+                    CepLookifyProviderEnum.OpenCep =>
+                        await OpenCepProviderRequest.RequestAsync(
+                            sanitizedZipCode,
+                            _httpFactory,
+                            cancellationToken),
+                    CepLookifyProviderEnum.AwesomeApi =>
+                        await AwesomeApiCepProviderRequest.RequestAsync(
                             sanitizedZipCode,
                             _httpFactory,
                             cancellationToken),
