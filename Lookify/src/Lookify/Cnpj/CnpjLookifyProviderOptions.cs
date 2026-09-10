@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Cnpj;
 
 public sealed class CnpjLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

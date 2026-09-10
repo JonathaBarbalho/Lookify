@@ -1,6 +1,6 @@
-using Lookify.Holiday;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Holiday;
 
 internal interface IHolidayProviderService : IProviderService {
 

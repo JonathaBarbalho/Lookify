@@ -1,6 +1,6 @@
-using Lookify.Ibge;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Ibge;
 
 internal interface IIbgeProviderService : IProviderService {
 

@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Holiday;
 
 public sealed class HolidayLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

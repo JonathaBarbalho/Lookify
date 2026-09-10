@@ -1,3 +1,5 @@
+using Lookify.Fipe;
+
 namespace Lookify.Providers.Parallelum;
 
 internal sealed partial class ParallelumFipeService : IFipeProviderService {

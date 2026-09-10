@@ -1,6 +1,6 @@
 namespace Lookify.Providers;
 
-internal interface IProviderOptions {
+internal interface IProviderEnablement {
 
     bool IsEnabled { get; }
 

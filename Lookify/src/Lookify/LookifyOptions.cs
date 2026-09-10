@@ -34,7 +34,7 @@ public sealed class LookifyOptions {
 
     private static void UpdateEnabled<TOptions>(
         bool isEnabled,
-        IEnumerable<TOptions> providers) where TOptions : IProviderOptions
+        IEnumerable<TOptions> providers) where TOptions : IProviderEnablement
     {
         foreach (var provider in providers)
             provider.UpdateEnabled(isEnabled);

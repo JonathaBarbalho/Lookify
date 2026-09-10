@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Ibge;
 
 public sealed class IbgeLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

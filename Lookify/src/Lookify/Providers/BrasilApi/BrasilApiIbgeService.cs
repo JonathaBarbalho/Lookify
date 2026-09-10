@@ -1,3 +1,5 @@
+using Lookify.Ibge;
+
 namespace Lookify.Providers.BrasilApi;
 
 internal sealed partial class BrasilApiIbgeService : IIbgeProviderService {

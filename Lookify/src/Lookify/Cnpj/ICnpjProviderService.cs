@@ -1,6 +1,6 @@
-using Lookify.Cnpj;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Cnpj;
 
 internal interface ICnpjProviderService : IProviderService {
 

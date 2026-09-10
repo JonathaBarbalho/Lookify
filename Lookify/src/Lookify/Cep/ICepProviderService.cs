@@ -1,6 +1,6 @@
-using Lookify.Cep;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Cep;
 
 internal interface ICepProviderService : IProviderService {
 

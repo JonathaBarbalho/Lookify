@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Weather;
 
 public sealed class WeatherLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

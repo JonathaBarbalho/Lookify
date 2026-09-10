@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Fipe;
 
 public sealed class FipeLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

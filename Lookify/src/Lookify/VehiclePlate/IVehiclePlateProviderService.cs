@@ -1,6 +1,6 @@
-using Lookify.VehiclePlate;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.VehiclePlate;
 
 internal interface IVehiclePlateProviderService : IProviderService {
 

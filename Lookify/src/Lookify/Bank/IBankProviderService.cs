@@ -1,6 +1,6 @@
-using Lookify.Bank;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Bank;
 
 internal interface IBankProviderService : IProviderService {
 

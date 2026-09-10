@@ -3,7 +3,7 @@
 namespace Lookify.Cep;
 
 public sealed class CepLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

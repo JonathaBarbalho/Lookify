@@ -1,3 +1,5 @@
+using Lookify.Ibge;
+
 namespace Lookify.Providers.Ibge;
 
 internal sealed partial class IbgeService : IIbgeProviderService {

@@ -1,6 +1,6 @@
-using Lookify.Weather;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Weather;
 
 internal interface IWeatherProviderService : IProviderService {
 

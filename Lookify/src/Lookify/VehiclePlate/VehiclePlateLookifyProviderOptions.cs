@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.VehiclePlate;
 
 public sealed class VehiclePlateLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

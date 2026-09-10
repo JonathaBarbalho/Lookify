@@ -3,7 +3,7 @@ using Lookify.Providers;
 namespace Lookify.Bank;
 
 public sealed class BankLookifyProviderOptions(
-        string baseAddress) : IProviderOptions {
+        string baseAddress) : IProviderEnablement {
 
     public bool IsEnabled { get; set; } = true;
 

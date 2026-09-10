@@ -1,6 +1,6 @@
-using Lookify.Fipe;
+using Lookify.Providers;
 
-namespace Lookify.Providers;
+namespace Lookify.Fipe;
 
 internal interface IFipeProviderService : IProviderService {
 
