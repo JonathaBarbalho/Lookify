@@ -2,9 +2,9 @@
 
 internal interface IProviderService {
 
-    public string ProviderName { get; }
+    public string ProviderName { get; init; }
 
-    public string BaseAddress { get; }
+    public string BaseAddress { get; init; }
 
     public bool IsEnabled { get; }
 
