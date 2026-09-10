@@ -1,6 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.BrasilApi;
-using Lookify.Providers.NagerDate;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,9 +8,6 @@ internal sealed class HolidayLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IHolidayLookifyService {
-
-    private static readonly BrasilApiProvider _brasilApi = new();
-    private static readonly NagerDateProvider _nagerDate = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -39,8 +34,8 @@ internal sealed class HolidayLookifyService(
 
     private static IProvider GetProvider(HolidayLookifyProviderEnum provider) =>
         provider switch {
-            HolidayLookifyProviderEnum.BrasilApi => _brasilApi,
-            HolidayLookifyProviderEnum.NagerDate => _nagerDate,
+            HolidayLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
+            HolidayLookifyProviderEnum.NagerDate => ProviderRegistry.NagerDate,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

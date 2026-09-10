@@ -1,6 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.Cptec;
-using Lookify.Providers.OpenMeteo;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,9 +8,6 @@ internal sealed class WeatherLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IWeatherLookifyService {
-
-    private static readonly OpenMeteoProvider _openMeteo = new();
-    private static readonly CptecProvider _cptec = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -70,8 +65,8 @@ internal sealed class WeatherLookifyService(
 
     private static IProvider GetProvider(WeatherLookifyProviderEnum provider) =>
         provider switch {
-            WeatherLookifyProviderEnum.OpenMeteo => _openMeteo,
-            WeatherLookifyProviderEnum.Cptec => _cptec,
+            WeatherLookifyProviderEnum.OpenMeteo => ProviderRegistry.OpenMeteo,
+            WeatherLookifyProviderEnum.Cptec => ProviderRegistry.Cptec,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

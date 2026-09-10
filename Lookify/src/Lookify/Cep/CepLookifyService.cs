@@ -1,8 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.AwesomeApi;
-using Lookify.Providers.BrasilApi;
-using Lookify.Providers.OpenCep;
-using Lookify.Providers.ViaCep;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -12,11 +8,6 @@ internal sealed class CepLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : ICepLookifyService {
-
-    private static readonly ViaCepProvider _viaCep = new();
-    private static readonly BrasilApiProvider _brasilApi = new();
-    private static readonly OpenCepProvider _openCep = new();
-    private static readonly AwesomeApiProvider _awesomeApi = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -61,10 +52,10 @@ internal sealed class CepLookifyService(
 
     private static IProvider GetProvider(CepLookifyProviderEnum provider) =>
         provider switch {
-            CepLookifyProviderEnum.ViaCep => _viaCep,
-            CepLookifyProviderEnum.BrasilApi => _brasilApi,
-            CepLookifyProviderEnum.OpenCep => _openCep,
-            CepLookifyProviderEnum.AwesomeApi => _awesomeApi,
+            CepLookifyProviderEnum.ViaCep => ProviderRegistry.ViaCep,
+            CepLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
+            CepLookifyProviderEnum.OpenCep => ProviderRegistry.OpenCep,
+            CepLookifyProviderEnum.AwesomeApi => ProviderRegistry.AwesomeApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

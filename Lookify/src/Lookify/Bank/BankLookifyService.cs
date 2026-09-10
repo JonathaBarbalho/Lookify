@@ -1,5 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.BrasilApi;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -9,8 +8,6 @@ internal sealed class BankLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IBankLookifyService {
-
-    private static readonly BrasilApiProvider _brasilApi = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -49,7 +46,7 @@ internal sealed class BankLookifyService(
 
     private static IProvider GetProvider(BankLookifyProviderEnum provider) =>
         provider switch {
-            BankLookifyProviderEnum.BrasilApi => _brasilApi,
+            BankLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

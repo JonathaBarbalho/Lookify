@@ -1,7 +1,5 @@
 using System.Text.RegularExpressions;
 using Lookify.Providers;
-using Lookify.Providers.BrasilApi;
-using Lookify.Providers.Ibge;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,9 +9,6 @@ internal sealed class IbgeLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IIbgeLookifyService {
-
-    private static readonly IbgeProvider _ibge = new();
-    private static readonly BrasilApiProvider _brasilApi = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -114,8 +109,8 @@ internal sealed class IbgeLookifyService(
 
     private static IProvider GetProvider(IbgeLookifyProviderEnum provider) =>
         provider switch {
-            IbgeLookifyProviderEnum.Ibge => _ibge,
-            IbgeLookifyProviderEnum.BrasilApi => _brasilApi,
+            IbgeLookifyProviderEnum.Ibge => ProviderRegistry.Ibge,
+            IbgeLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

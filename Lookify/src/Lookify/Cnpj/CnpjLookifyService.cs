@@ -1,8 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.BrasilApi;
-using Lookify.Providers.MinhaReceita;
-using Lookify.Providers.Publica;
-using Lookify.Providers.ReceitaWs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -12,11 +8,6 @@ internal sealed class CnpjLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : ICnpjLookifyService {
-
-    private static readonly BrasilApiProvider _brasilApi = new();
-    private static readonly ReceitaWsProvider _receitaWs = new();
-    private static readonly PublicaProvider _publica = new();
-    private static readonly MinhaReceitaProvider _minhaReceita = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -61,10 +52,10 @@ internal sealed class CnpjLookifyService(
 
     private static IProvider GetProvider(CnpjLookifyProviderEnum provider) =>
         provider switch {
-            CnpjLookifyProviderEnum.BrasilApi => _brasilApi,
-            CnpjLookifyProviderEnum.ReceitaWs => _receitaWs,
-            CnpjLookifyProviderEnum.Publica => _publica,
-            CnpjLookifyProviderEnum.MinhaReceita => _minhaReceita,
+            CnpjLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
+            CnpjLookifyProviderEnum.ReceitaWs => ProviderRegistry.ReceitaWs,
+            CnpjLookifyProviderEnum.Publica => ProviderRegistry.Publica,
+            CnpjLookifyProviderEnum.MinhaReceita => ProviderRegistry.MinhaReceita,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

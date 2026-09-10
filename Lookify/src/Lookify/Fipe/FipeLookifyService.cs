@@ -1,6 +1,4 @@
 using Lookify.Providers;
-using Lookify.Providers.BrasilApi;
-using Lookify.Providers.Parallelum;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,9 +8,6 @@ internal sealed class FipeLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IFipeLookifyService {
-
-    private static readonly BrasilApiProvider _brasilApi = new();
-    private static readonly ParallelumProvider _parallelum = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -149,8 +144,8 @@ internal sealed class FipeLookifyService(
 
     private static IProvider GetProvider(FipeLookifyProviderEnum provider) =>
         provider switch {
-            FipeLookifyProviderEnum.BrasilApi => _brasilApi,
-            FipeLookifyProviderEnum.Parallelum => _parallelum,
+            FipeLookifyProviderEnum.BrasilApi => ProviderRegistry.BrasilApi,
+            FipeLookifyProviderEnum.Parallelum => ProviderRegistry.Parallelum,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 

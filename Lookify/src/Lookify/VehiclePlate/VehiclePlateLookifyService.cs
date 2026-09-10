@@ -1,6 +1,5 @@
 using System.Text.RegularExpressions;
 using Lookify.Providers;
-using Lookify.Providers.PlacaFipe;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,8 +9,6 @@ internal sealed class VehiclePlateLookifyService(
     IHttpClientFactory httpFactory,
     IOptions<LookifyOptions> options,
     ILogger logger) : IVehiclePlateLookifyService {
-
-    private static readonly PlacaFipeProvider _placaFipe = new();
 
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
@@ -61,7 +58,7 @@ internal sealed class VehiclePlateLookifyService(
 
     private static IProvider GetProvider(VehiclePlateLookifyProviderEnum provider) =>
         provider switch {
-            VehiclePlateLookifyProviderEnum.PlacaFipe => _placaFipe,
+            VehiclePlateLookifyProviderEnum.PlacaFipe => ProviderRegistry.PlacaFipe,
             _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
         };
 
