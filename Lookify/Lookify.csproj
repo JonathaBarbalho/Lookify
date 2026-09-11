@@ -10,4 +10,8 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Lookify.Tests" />
+  </ItemGroup>
+
 </Project>

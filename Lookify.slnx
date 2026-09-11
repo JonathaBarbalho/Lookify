@@ -1,7 +1,5 @@
 <Solution>
-  <Folder Name="/Lookify/" />
-  <Folder Name="/Lookify/src/">
-    <Project Path="Lookify/src/Lookify/Lookify.csproj" />
-  </Folder>
+  <Project Path="Lookify/Lookify.csproj" />
+  <Project Path="Lookify.Tests/Lookify.Tests.csproj" />
   <Project Path="LookifyConsoleTester/LookifyConsoleTester.csproj" />
 </Solution>

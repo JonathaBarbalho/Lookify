@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Lookify\src\Lookify\Lookify.csproj" />
+    <ProjectReference Include="..\Lookify\Lookify.csproj" />
   </ItemGroup>
 
   <ItemGroup>
