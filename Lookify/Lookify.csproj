@@ -1,9 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Lookify</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Jonatha Barbalho</Authors>
+    <Description>Biblioteca .NET para consulta de CEP, CNPJ, placa de veículo, tabela FIPE, localidades do IBGE, bancos, feriados e previsão do tempo, com fallback automático entre múltiplos provedores.</Description>
+    <PackageTags>cep;cnpj;fipe;ibge;bancos;feriados;clima;brasil;dotnet</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/JonathaBarbalho/Lookify</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/JonathaBarbalho/Lookify.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +27,11 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Lookify.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\" />
+    <None Include="../LICENSE.txt" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>
