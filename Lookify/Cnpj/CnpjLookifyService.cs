@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Lookify.Providers;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -12,6 +13,10 @@ internal sealed class CnpjLookifyService(
     private readonly IHttpClientFactory _httpFactory = httpFactory;
     private readonly LookifyOptions _options = options.Value;
     private readonly ILogger _logger = logger;
+
+    private static readonly Regex CnpjFormatRegex = new(
+        "^[A-Z0-9]{12}\\d{2}$",
+        RegexOptions.Compiled);
 
     public async Task<CnpjLookifyResultDto> ConsultAsync(
         string cnpj,
@@ -33,13 +38,13 @@ internal sealed class CnpjLookifyService(
                 cancellationToken));
     }
 
-    private string SanitizeCnpj(string cnpj)
+    private static string SanitizeCnpj(string cnpj)
     {
-        var sanitizedCnpj = new string(cnpj.Where(char.IsDigit).ToArray());
+        var sanitizedCnpj = new string(cnpj.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
 
-        if (sanitizedCnpj.Length != 14)
+        if (!CnpjFormatRegex.IsMatch(sanitizedCnpj))
             throw new ArgumentException(
-                "Cnpj must contain exactly 14 digits after sanitization.",
+                "Cnpj must contain 14 characters after sanitization: 12 alphanumeric characters followed by 2 numeric check digits.",
                 nameof(cnpj));
 
         return sanitizedCnpj;

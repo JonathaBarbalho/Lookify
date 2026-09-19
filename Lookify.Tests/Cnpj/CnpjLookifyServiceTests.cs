@@ -36,7 +36,8 @@ public class CnpjLookifyServiceTests {
     [Theory]
     [InlineData("123")]
     [InlineData("1122233300018")]
-    public async Task ConsultAsync_QuandoCnpjComMenosDe14Digitos_LancaArgumentException(string cnpj)
+    [InlineData("12ABC34501DEA5")]
+    public async Task ConsultAsync_QuandoCnpjNaoTem14CaracteresOuDigitosVerificadoresNaoNumericos_LancaArgumentException(string cnpj)
     {
         var service = CreateService();
 
@@ -44,7 +45,7 @@ public class CnpjLookifyServiceTests {
     }
 
     [Fact]
-    public async Task ConsultAsync_QuandoCnpjComFormatacao_SanitizaEConsultaApenasDigitos()
+    public async Task ConsultAsync_QuandoCnpjComFormatacao_SanitizaERemovePontuacao()
     {
         var options = new Lookify.LookifyOptions();
         options.UpdateEnableCnpjProvider(
@@ -61,6 +62,27 @@ public class CnpjLookifyServiceTests {
 
         Assert.Equal(
             "https://brasilapi.com.br/api/cnpj/v1/11222333000181",
+            handler.LastRequest?.RequestUri?.ToString());
+    }
+
+    [Fact]
+    public async Task ConsultAsync_QuandoCnpjAlfanumericoComFormatacao_SanitizaERemovePontuacaoMantendoLetras()
+    {
+        var options = new Lookify.LookifyOptions();
+        options.UpdateEnableCnpjProvider(
+            false,
+            CnpjLookifyProviderEnum.ReceitaWs,
+            CnpjLookifyProviderEnum.Publica,
+            CnpjLookifyProviderEnum.MinhaReceita);
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new StringContent(BrasilApiJson, Encoding.UTF8, "application/json")
+        });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        await service.ConsultAsync("12.abc.345/01de-35");
+
+        Assert.Equal(
+            "https://brasilapi.com.br/api/cnpj/v1/12ABC34501DE35",
             handler.LastRequest?.RequestUri?.ToString());
     }
 

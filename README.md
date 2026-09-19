@@ -213,9 +213,11 @@ retorna, fica `null`):
 Task<CnpjLookifyResultDto> ConsultAsync(string cnpj, CancellationToken cancellationToken = default)
 ```
 
-O CNPJ informado é sanitizado (mantendo só dígitos) e precisa resultar em exatamente
-**14 dígitos**, senão uma `ArgumentException` é lançada antes de qualquer chamada de rede. Não há
-validação de dígito verificador.
+O CNPJ informado é sanitizado (mantendo letras e dígitos, convertidos para maiúsculas) e precisa
+resultar em exatamente **14 caracteres**, sendo os **12 primeiros alfanuméricos** e os **2
+últimos numéricos** (dígitos verificadores) — o novo padrão alfanumérico de CNPJ da Receita
+Federal —, senão uma `ArgumentException` é lançada antes de qualquer chamada de rede. Não há
+validação do cálculo do dígito verificador.
 
 Provedores disponíveis (`CnpjLookifyProviderEnum`): `BrasilApi`, `ReceitaWs`, `Publica`,
 `MinhaReceita`.
