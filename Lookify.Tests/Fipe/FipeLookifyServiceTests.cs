@@ -112,4 +112,22 @@ public class FipeLookifyServiceTests {
         var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
         Assert.Equal(2, aggregate.InnerExceptions.Count);
     }
+
+    [Fact]
+    public async Task GetPriceByFipeCodeAsync_QuandoBrasilApiFalhaEParallelumNaoSuporta_LancaInvalidOperationExceptionComAggregateException()
+    {
+        var options = new Lookify.LookifyOptions();
+        var handler = new FakeHttpMessageHandler(
+            _ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetPriceByFipeCodeAsync("001004-9"));
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.Equal(2, aggregate.InnerExceptions.Count);
+        Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[0]);
+        Assert.IsType<NotSupportedException>(aggregate.InnerExceptions[1]);
+        Assert.Single(handler.Requests);
+    }
 }

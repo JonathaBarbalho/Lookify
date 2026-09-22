@@ -100,4 +100,108 @@ public class IbgeLookifyServiceTests {
         var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
         Assert.Equal(2, aggregate.InnerExceptions.Count);
     }
+
+    [Fact]
+    public async Task GetCitiesByStateAsync_QuandoPrimeiroProviderFalhaESegundoSucede_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new Lookify.LookifyOptions();
+        var handler = new FakeHttpMessageHandler(request =>
+            request.RequestUri!.Host.Contains("servicodados")
+                ? new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                : new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""[{"nome":"São Paulo","codigo_ibge":"3550308"}]""", Encoding.UTF8, "application/json")
+                });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.GetCitiesByStateAsync("SP");
+
+        Assert.Single(result);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task GetCitiesByStateAsync_QuandoProviderDesabilitado_NuncaERequisitado()
+    {
+        var options = new Lookify.LookifyOptions();
+        options.UpdateEnableIbgeProvider(false, IbgeLookifyProviderEnum.Ibge);
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new StringContent("[]", Encoding.UTF8, "application/json")
+        });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        await service.GetCitiesByStateAsync("SP");
+
+        Assert.Single(handler.Requests);
+        Assert.Contains("brasilapi", handler.Requests[0].RequestUri!.Host);
+    }
+
+    [Fact]
+    public async Task GetCitiesByStateAsync_QuandoTodosProvidersHabilitadosFalham_LancaInvalidOperationExceptionComAggregateException()
+    {
+        var options = new Lookify.LookifyOptions();
+        var handler = new FakeHttpMessageHandler(
+            _ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetCitiesByStateAsync("SP"));
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.Equal(2, aggregate.InnerExceptions.Count);
+        Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[0]);
+        Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[1]);
+    }
+
+    [Fact]
+    public async Task GetAllCitiesAsync_QuandoPrimeiroProviderFalhaESegundoNaoSuporta_LancaInvalidOperationExceptionComAggregateException()
+    {
+        var options = new Lookify.LookifyOptions();
+        var handler = new FakeHttpMessageHandler(request =>
+            request.RequestUri!.Host.Contains("servicodados")
+                ? new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                : throw new NotSupportedException("BrasilApi não deveria receber essa chamada, ele lança NotSupportedException antes."));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetAllCitiesAsync());
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.Equal(2, aggregate.InnerExceptions.Count);
+        Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[0]);
+        Assert.IsType<NotSupportedException>(aggregate.InnerExceptions[1]);
+    }
+
+    [Fact]
+    public async Task GetAllCitiesAsync_QuandoProviderCapazDesabilitado_NuncaERequisitadoELancaExcecao()
+    {
+        var options = new Lookify.LookifyOptions();
+        options.UpdateEnableIbgeProvider(false, IbgeLookifyProviderEnum.Ibge);
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK) {
+            Content = new StringContent("[]", Encoding.UTF8, "application/json")
+        });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetAllCitiesAsync());
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.Single(aggregate.InnerExceptions);
+        Assert.IsType<NotSupportedException>(aggregate.InnerExceptions[0]);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetAllCitiesAsync_QuandoTodosProvidersHabilitadosFalham_LancaInvalidOperationExceptionComAggregateException()
+    {
+        var options = new Lookify.LookifyOptions();
+        var handler = new FakeHttpMessageHandler(
+            _ => new HttpResponseMessage(HttpStatusCode.InternalServerError));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetAllCitiesAsync());
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.Equal(2, aggregate.InnerExceptions.Count);
+    }
 }
