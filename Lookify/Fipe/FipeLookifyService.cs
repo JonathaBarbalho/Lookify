@@ -19,10 +19,12 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             "tabelas de referência FIPE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetReferenceTablesAsync(
+            (provider, token) => GetService(provider).GetReferenceTablesAsync(
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<FipeBrandLookifyResultDto>> GetBrandsAsync(
@@ -33,12 +35,14 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"marcas FIPE de {vehicleType}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetBrandsAsync(
+            (provider, token) => GetService(provider).GetBrandsAsync(
                 vehicleType,
                 referenceTable,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<FipeModelLookifyResultDto>> GetModelsAsync(
@@ -52,13 +56,15 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"modelos FIPE da marca {brandCode}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetModelsAsync(
+            (provider, token) => GetService(provider).GetModelsAsync(
                 vehicleType,
                 brandCode,
                 referenceTable,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<FipeModelYearLookifyResultDto>> GetModelYearsAsync(
@@ -74,14 +80,16 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"anos FIPE do modelo {modelCode}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetModelYearsAsync(
+            (provider, token) => GetService(provider).GetModelYearsAsync(
                 vehicleType,
                 brandCode,
                 modelCode,
                 referenceTable,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<FipeVehiclePriceLookifyResultDto> GetVehiclePriceAsync(
@@ -99,15 +107,17 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"valor FIPE do veículo {brandCode}/{modelCode}/{yearCode}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetVehiclePriceAsync(
+            (provider, token) => GetService(provider).GetVehiclePriceAsync(
                 vehicleType,
                 brandCode,
                 modelCode,
                 yearCode,
                 referenceTable,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<FipeVehiclePriceLookifyResultDto>> GetPriceByFipeCodeAsync(
@@ -120,12 +130,14 @@ internal sealed class FipeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"valor FIPE do código {fipeCode}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetPriceByFipeCodeAsync(
+            (provider, token) => GetService(provider).GetPriceByFipeCodeAsync(
                 fipeCode,
                 referenceTable,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private static void RequireNotEmpty(

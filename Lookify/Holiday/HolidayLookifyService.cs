@@ -20,11 +20,13 @@ internal sealed class HolidayLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"os feriados de {year}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetHolidaysAsync(
+            (provider, token) => GetService(provider).GetHolidaysAsync(
                 year,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private List<HolidayLookifyProviderEnum> GetEnabledProviders() =>

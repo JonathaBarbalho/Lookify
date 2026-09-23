@@ -31,11 +31,13 @@ internal sealed class CnpjLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"o CNPJ {sanitizedCnpj}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).RequestAsync(
+            (provider, token) => GetService(provider).RequestAsync(
                 sanitizedCnpj,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private static string SanitizeCnpj(string cnpj)

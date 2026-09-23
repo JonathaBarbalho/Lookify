@@ -204,4 +204,24 @@ public class IbgeLookifyServiceTests {
         var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
         Assert.Equal(2, aggregate.InnerExceptions.Count);
     }
+
+    [Fact]
+    public async Task GetStatesAsync_QuandoPrimeiroProviderEstouraTimeOut_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        var handler = new AsyncFakeHttpMessageHandler((request, token) =>
+            request.RequestUri!.Host.Contains("servicodados")
+                ? AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token)
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""[{"id":35,"sigla":"SP","nome":"São Paulo"}]""", Encoding.UTF8, "application/json")
+                }));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.GetStatesAsync();
+
+        Assert.Single(result);
+        Assert.Equal(2, handler.Requests.Count);
+    }
 }

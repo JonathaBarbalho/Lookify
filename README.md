@@ -625,7 +625,8 @@ public sealed class LookifyOptions {
 ```
 
 - `UserAgent`: enviado nas requisições aos provedores.
-- `TimeOut`: tempo limite das requisições HTTP.
+- `TimeOut`: tempo limite de **cada tentativa de provedor** (padrão: 3 minutos). Ver
+  [Tempo limite (`TimeOut`)](#tempo-limite-timeout).
 - `CepProviders` / `CnpjProviders` / `VehiclePlateProviders` / `FipeProviders` / `IbgeProviders` /
   `BankProviders` / `HolidayProviders` / `WeatherProviders`: listas que definem **quais provedores
   participam e em que ordem** o fallback é tentado. Por padrão:
@@ -655,6 +656,26 @@ public sealed class LookifyOptions {
   `Order*Providers` reordena os provedores informados e mantém os demais, na ordem original, ao
   final da lista. Um provedor desabilitado é pulado no fallback mesmo que ainda apareça na ordem.
 
+### Tempo limite (`TimeOut`)
+
+- O limite vale **por tentativa**: cada provedor tem até `TimeOut` para responder. Numa consulta
+  que faz mais de uma chamada HTTP no mesmo provedor (ex.: previsão do tempo por cidade no
+  `OpenMeteo`, que faz geocodificação e previsão), o limite cobre a tentativa inteira.
+- Estourar o limite conta como falha do provedor: o fallback segue para o próximo. Se todos
+  falharem, a falha por tempo limite aparece como `TimeoutException` dentro da `AggregateException`
+  da `InvalidOperationException` lançada.
+- Cancelar o `CancellationToken` passado pelo chamador **aborta a consulta na hora**: a
+  `OperationCanceledException` é propagada sem tentar os demais provedores e sem ser embrulhada.
+- Valores aceitos: maior que `TimeSpan.Zero` e até cerca de 49,7 dias (`uint.MaxValue - 1`
+  milissegundos, o máximo de `CancellationTokenSource.CancelAfter`), ou `Timeout.InfiniteTimeSpan`
+  para desativar o limite. Qualquer outro valor lança `ArgumentOutOfRangeException` no setter — ao
+  configurar via `appsettings.json`, um valor inválido passa a lançar ao resolver as opções.
+- O `HttpClient` registrado continua com o próprio `Timeout` (100 segundos por padrão), que limita
+  cada requisição HTTP de forma independente. Para usar um `TimeOut` maior que isso, aumente também
+  o `Timeout` dos clientes HTTP — o Lookify cria clientes nomeados (`Lookify.{Provedor}...`), então
+  a forma mais simples é o padrão global:
+  `services.ConfigureHttpClientDefaults(builder => builder.ConfigureHttpClient(client => client.Timeout = ...))`.
+
 ### Configurando via código
 
 ```csharp
@@ -674,7 +695,8 @@ Habilitar/desabilitar e reordenar provedores agora é feito em código (métodos
 ```json
 {
   "Lookify": {
-    "UserAgent": "MinhaApp/1.0"
+    "UserAgent": "MinhaApp/1.0",
+    "TimeOut": "00:00:30"
   }
 }
 ```
@@ -706,11 +728,13 @@ Ao consultar, os provedores habilitados são tentados **na ordem definida** em `
 `CnpjProviders`/`VehiclePlateProviders`/`FipeProviders`/`IbgeProviders`/`BankProviders`/
 `HolidayProviders`/`WeatherProviders`:
 
-1. Se um provedor falhar (erro HTTP, timeout, falha de desserialização, etc.), a falha é logada via
-   `ILogger` e o próximo provedor da lista é tentado.
+1. Se um provedor falhar (erro HTTP, tempo limite `TimeOut` excedido, falha de desserialização, etc.),
+   a falha é logada via `ILogger` e o próximo provedor da lista é tentado.
 2. O resultado do **primeiro provedor que responder com sucesso** é retornado.
 3. Se **todos** os provedores falharem, é lançada uma `InvalidOperationException` agregando as
    falhas de cada um (`AggregateException`).
+4. Se o chamador cancelar o `CancellationToken`, a consulta é interrompida com
+   `OperationCanceledException`, sem tentar os provedores seguintes.
 
 ## Licença
 

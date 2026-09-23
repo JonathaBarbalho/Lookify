@@ -95,4 +95,22 @@ public class BankLookifyServiceTests {
         var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
         Assert.Single(aggregate.InnerExceptions);
     }
+
+    [Fact]
+    public async Task GetBankByCodeAsync_QuandoProviderEstouraTimeOut_LancaInvalidOperationExceptionComTimeoutException()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        var handler = new AsyncFakeHttpMessageHandler(
+            (_, token) => AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            service.GetBankByCodeAsync(1));
+
+        var aggregate = Assert.IsType<AggregateException>(exception.InnerException);
+        Assert.IsType<TimeoutException>(Assert.Single(aggregate.InnerExceptions));
+        Assert.Single(handler.Requests);
+    }
 }

@@ -26,11 +26,13 @@ internal sealed class CepLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"o CEP {sanitizedZipCode}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).RequestAsync(
+            (provider, token) => GetService(provider).RequestAsync(
                 sanitizedZipCode,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private string SanitizeZipCode(string zipCode)

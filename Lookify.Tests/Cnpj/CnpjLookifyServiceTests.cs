@@ -139,4 +139,28 @@ public class CnpjLookifyServiceTests {
         Assert.Equal(4, aggregate.InnerExceptions.Count);
         Assert.Equal(4, handler.Requests.Count);
     }
+
+    [Fact]
+    public async Task ConsultAsync_QuandoPrimeiroProviderEstouraTimeOut_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        options.UpdateEnableCnpjProvider(
+            false,
+            CnpjLookifyProviderEnum.Publica,
+            CnpjLookifyProviderEnum.MinhaReceita);
+        var handler = new AsyncFakeHttpMessageHandler((request, token) =>
+            request.RequestUri!.Host.Contains("brasilapi")
+                ? AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token)
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""{"cnpj":"11222333000181","nome":"Empresa Exemplo LTDA"}""", Encoding.UTF8, "application/json")
+                }));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.ConsultAsync("11222333000181");
+
+        Assert.Equal("Empresa Exemplo LTDA", result.CompanyName);
+        Assert.Equal(2, handler.Requests.Count);
+    }
 }

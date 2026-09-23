@@ -142,4 +142,42 @@ public class WeatherLookifyServiceTests {
         Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[0]);
         Assert.IsType<HttpRequestException>(aggregate.InnerExceptions[1]);
     }
+
+    [Fact]
+    public async Task GetForecastByCityNameAsync_QuandoPrevisaoDoOpenMeteoEstouraTimeOut_RetornaResultadoDoCptec()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        var handler = new AsyncFakeHttpMessageHandler((request, token) => {
+            if (request.RequestUri!.Host.Contains("geocoding")) {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""{"results":[{"name":"São Paulo","latitude":-23.55,"longitude":-46.63,"admin1":"São Paulo"}]}""", Encoding.UTF8, "application/json")
+                });
+            }
+
+            if (request.RequestUri.Host.Contains("open-meteo")) {
+                return AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token);
+            }
+
+            if (request.RequestUri.AbsolutePath.Contains("/cidade/")) {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""[{"nome":"São Paulo","id":244,"estado":"SP"}]""", Encoding.UTF8, "application/json")
+                });
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent("""{"cidade":"São Paulo","estado":"SP","clima":[{"data":"2026-09-21","condicao":"c","condicao_desc":"Céu limpo","min":18,"max":27,"indice_uv":6}]}""", Encoding.UTF8, "application/json")
+            });
+        });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.GetForecastByCityNameAsync("São Paulo");
+
+        Assert.Single(result);
+        Assert.Equal(4, handler.Requests.Count);
+        Assert.Equal("geocoding-api.open-meteo.com", handler.Requests[0].RequestUri!.Host);
+        Assert.Equal("api.open-meteo.com", handler.Requests[1].RequestUri!.Host);
+        Assert.All(handler.Requests.Skip(2), request => Assert.Contains("brasilapi", request.RequestUri!.Host));
+    }
 }

@@ -88,4 +88,24 @@ public class HolidayLookifyServiceTests {
         Assert.Equal(2, aggregate.InnerExceptions.Count);
         Assert.Equal(2, handler.Requests.Count);
     }
+
+    [Fact]
+    public async Task GetHolidaysAsync_QuandoPrimeiroProviderEstouraTimeOut_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        var handler = new AsyncFakeHttpMessageHandler((request, token) =>
+            request.RequestUri!.AbsolutePath.Contains("feriados")
+                ? AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token)
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent(NagerDateJson, Encoding.UTF8, "application/json")
+                }));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.GetHolidaysAsync(2024);
+
+        Assert.Single(result);
+        Assert.Equal(2, handler.Requests.Count);
+    }
 }

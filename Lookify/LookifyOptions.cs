@@ -30,7 +30,39 @@ public sealed class LookifyOptions {
     /// </summary>
     public string UserAgent { get; set; } = "Lookify/1.0";
 
-    public TimeSpan TimeOut { get; set; } = TimeSpan.FromMinutes(3);
+    /// <summary>
+    /// Maior intervalo aceito por <see cref="CancellationTokenSource.CancelAfter(TimeSpan)"/>
+    /// (<c>uint.MaxValue - 1</c> milissegundos, cerca de 49,7 dias).
+    /// </summary>
+    private static readonly TimeSpan MaxTimeOut = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
+
+    private TimeSpan _timeOut = TimeSpan.FromMinutes(3);
+
+    /// <summary>
+    /// Tempo limite de cada tentativa de provedor. Padrão: 3 minutos.
+    /// </summary>
+    /// <remarks>
+    /// O limite vale por tentativa: quando um provedor o excede, a falha é registrada como
+    /// <see cref="TimeoutException"/> e o próximo provedor habilitado é consultado. Use
+    /// <see cref="Timeout.InfiniteTimeSpan"/> para desativar o limite. O <see cref="HttpClient.Timeout"/>
+    /// do cliente registrado continua valendo de forma independente.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Quando o valor não é positivo, excede cerca de 49,7 dias ou não é <see cref="Timeout.InfiniteTimeSpan"/>.
+    /// </exception>
+    public TimeSpan TimeOut {
+        get => _timeOut;
+        set {
+            if (value != Timeout.InfiniteTimeSpan && (value <= TimeSpan.Zero || value > MaxTimeOut)) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(value),
+                    value,
+                    $"O tempo limite deve ser maior que zero e no máximo {MaxTimeOut}, ou Timeout.InfiniteTimeSpan.");
+            }
+
+            _timeOut = value;
+        }
+    }
 
     private static void UpdateEnabled<TOptions>(
         bool isEnabled,

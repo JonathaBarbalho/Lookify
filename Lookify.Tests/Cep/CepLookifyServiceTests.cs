@@ -126,4 +126,50 @@ public class CepLookifyServiceTests {
         Assert.Equal(4, aggregate.InnerExceptions.Count);
         Assert.Equal(4, handler.Requests.Count);
     }
+
+    [Fact]
+    public async Task ConsultAsync_QuandoPrimeiroProviderEstouraTimeOut_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        options.UpdateEnableCepProvider(
+            false,
+            CepLookifyProviderEnum.OpenCep,
+            CepLookifyProviderEnum.AwesomeApi);
+        var handler = new AsyncFakeHttpMessageHandler((request, token) =>
+            request.RequestUri!.Host.Contains("viacep")
+                ? AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token)
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent(BrasilApiJson, Encoding.UTF8, "application/json")
+                }));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.ConsultAsync("01001000");
+
+        Assert.Equal("São Paulo", result.City);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal("brasilapi.com.br", handler.Requests[1].RequestUri!.Host);
+    }
+
+    [Fact]
+    public async Task ConsultAsync_QuandoChamadorCancelaDuranteConsulta_PropagaOperationCanceledExceptionSemTentarProximo()
+    {
+        var options = new LookifyOptions();
+        var viaCepIniciou = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new AsyncFakeHttpMessageHandler((_, token) => {
+            viaCepIniciou.TrySetResult();
+            return AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token);
+        });
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+        using var cancellationSource = new CancellationTokenSource();
+
+        var consulta = service.ConsultAsync("01001000", cancellationSource.Token);
+        await viaCepIniciou.Task;
+        cancellationSource.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => consulta);
+        Assert.Single(handler.Requests);
+        Assert.Equal("viacep.com.br", handler.Requests[0].RequestUri!.Host);
+    }
 }

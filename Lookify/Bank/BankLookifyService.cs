@@ -19,10 +19,12 @@ internal sealed class BankLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             "bancos",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetAllBanksAsync(
+            (provider, token) => GetService(provider).GetAllBanksAsync(
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<BankLookifyResultDto> GetBankByCodeAsync(
@@ -32,11 +34,13 @@ internal sealed class BankLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"banco de código {code}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetBankByCodeAsync(
+            (provider, token) => GetService(provider).GetBankByCodeAsync(
                 code,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private List<BankLookifyProviderEnum> GetEnabledProviders() =>

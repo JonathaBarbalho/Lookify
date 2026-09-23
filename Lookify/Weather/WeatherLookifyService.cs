@@ -22,13 +22,15 @@ internal sealed class WeatherLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"previsão do tempo para {latitude},{longitude}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetForecastByCoordinatesAsync(
+            (provider, token) => GetService(provider).GetForecastByCoordinatesAsync(
                 latitude,
                 longitude,
                 days,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<WeatherForecastLookifyResultDto>> GetForecastByCityNameAsync(
@@ -49,13 +51,15 @@ internal sealed class WeatherLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             operationDescription,
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetForecastByCityNameAsync(
+            (provider, token) => GetService(provider).GetForecastByCityNameAsync(
                 cityName,
                 normalizedState,
                 days,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private List<WeatherLookifyProviderEnum> GetEnabledProviders() =>

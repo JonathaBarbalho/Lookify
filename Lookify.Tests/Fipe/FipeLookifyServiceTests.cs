@@ -130,4 +130,24 @@ public class FipeLookifyServiceTests {
         Assert.IsType<NotSupportedException>(aggregate.InnerExceptions[1]);
         Assert.Single(handler.Requests);
     }
+
+    [Fact]
+    public async Task GetReferenceTablesAsync_QuandoPrimeiroProviderEstouraTimeOut_RetornaResultadoDoSegundoProvider()
+    {
+        var options = new Lookify.LookifyOptions {
+            TimeOut = TimeSpan.FromMilliseconds(100)
+        };
+        var handler = new AsyncFakeHttpMessageHandler((request, token) =>
+            request.RequestUri!.Host.Contains("brasilapi")
+                ? AsyncFakeHttpMessageHandler.HangUntilCanceledAsync(token)
+                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("""[{"code":202401,"month":"janeiro/2024"}]""", Encoding.UTF8, "application/json")
+                }));
+        var service = CreateService(new FakeHttpClientFactory(handler), options);
+
+        var result = await service.GetReferenceTablesAsync();
+
+        Assert.Single(result);
+        Assert.Equal(2, handler.Requests.Count);
+    }
 }

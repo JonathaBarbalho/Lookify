@@ -24,10 +24,12 @@ internal sealed class IbgeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             "estados do IBGE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetStatesAsync(
+            (provider, token) => GetService(provider).GetStatesAsync(
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<IbgeStateLookifyResultDto> GetStateAsync(
@@ -39,11 +41,13 @@ internal sealed class IbgeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"estado {sanitizedUf} do IBGE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetStateAsync(
+            (provider, token) => GetService(provider).GetStateAsync(
                 sanitizedUf,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<IbgeCityLookifyResultDto>> GetCitiesByStateAsync(
@@ -55,11 +59,13 @@ internal sealed class IbgeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"municípios do estado {sanitizedUf} do IBGE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetCitiesByStateAsync(
+            (provider, token) => GetService(provider).GetCitiesByStateAsync(
                 sanitizedUf,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<IbgeCityLookifyResultDto>> GetAllCitiesAsync(
@@ -68,10 +74,12 @@ internal sealed class IbgeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             "todos os municípios do IBGE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetAllCitiesAsync(
+            (provider, token) => GetService(provider).GetAllCitiesAsync(
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     public async Task<List<IbgeRegionLookifyResultDto>> GetRegionsAsync(
@@ -80,10 +88,12 @@ internal sealed class IbgeLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             "regiões do IBGE",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).GetRegionsAsync(
+            (provider, token) => GetService(provider).GetRegionsAsync(
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private static string SanitizeUf(

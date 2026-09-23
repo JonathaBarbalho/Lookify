@@ -31,12 +31,14 @@ internal sealed class VehiclePlateLookifyService(
         return await ProviderFallback.ExecuteAsync(
             GetEnabledProviders(),
             $"a placa {sanitizedPlate}",
+            _options.TimeOut,
             _logger,
-            provider => GetService(provider).RequestAsync(
+            (provider, token) => GetService(provider).RequestAsync(
                 sanitizedPlate,
                 _options.GetProviderOptions(provider).Token,
                 _httpFactory,
-                cancellationToken));
+                token),
+            cancellationToken);
     }
 
     private static string SanitizePlate(string plate)
